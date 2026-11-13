@@ -107,9 +107,9 @@ Named volume и `.env` сохраняются между остановками 
 |---|---|---|
 | Дмитрий | Лид; главная/аналитика, архитектура, backend/Docker, палитра | `dmitry/core-home`, `dmitry/sqlite-docker-api`, `dmitry/sutd-palette`, `dmitry/home-analytics` |
 | Максим | Каталог и оформление записи | `maxim/catalog-booking` |
-| Алексей | Storage/adapters, «Мои записи», календарь и сквозная интеграция | `alexey/storage-contract`, `alexey/orders-integration` |
+| Алексей | Storage/adapters, «Мои записи», календарь и сквозная интеграция | `alexey/dual-mode-storage`, `alexey/orders-integration` |
 
-После merge часть исходных refs была удалена. В текущем `git branch -a` сохранились перечисленные ветки Дмитрия; участие Максима и Алексея подтверждается их коммитами и merged PR ниже. Названия `dmitry/sqlite-docker-api` и `dmitry/home-analytics` приведены по фактическим refs, а не по сокращённым псевдонимам этапов.
+Перечисленные рабочие ветки соответствуют фактическим merged PR и сохранены в репозитории. Общие файлы изменялись по согласованию; вклад каждого участника виден в его коммитах и запросах слияния.
 
 ## Merged pull request
 
