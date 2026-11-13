@@ -139,7 +139,8 @@ export function validateBookingValues(values = {}, context = {}) {
     errors.slotId = "Выберите доступное время консультации.";
   } else if (context.slot.id !== draft.slotId) {
     errors.slotId = "Выбранный слот не принадлежит текущей консультации.";
-  } else if (!getBookingSlotAvailability(context.slot, context.now ?? new Date()).isAvailable) {
+  } else if (!getBookingSlotAvailability(context.slot, context.now ?? new Date()).isAvailable
+    && !isRestoredPendingReplay(context.restoredOperation, draft)) {
     errors.slotId = "Этот слот прошёл, закрыт или уже заполнен. Выберите другое время.";
   }
   if (draft.displayName.length < 2 || draft.displayName.length > 80) {
@@ -193,6 +194,23 @@ export function ensureBookingOperation(operation, draft, cryptoImpl = globalThis
     fingerprint,
     conflict: false,
   };
+}
+
+export function isRestoredPendingReplay(operation, draft) {
+  if (operation?.restored !== true) {
+    return false;
+  }
+  try {
+    return operation.fingerprint === canonicalizeBookingPayload(draft);
+  } catch {
+    return false;
+  }
+}
+
+export function isRestoredPendingSlot(operation, consultationId, slotId) {
+  return operation?.restored === true
+    && operation.consultationId === cleanString(consultationId)
+    && operation.slotId === cleanString(slotId);
 }
 
 function resolvePendingSessionStorage(storage) {
@@ -261,6 +279,7 @@ export function restorePendingBookingOperation(storage) {
       draft,
       consultationId: draft.consultationId,
       slotId: draft.slotId,
+      restored: true,
     };
   } catch {
     return null;
@@ -420,7 +439,7 @@ export function initializeBooking(root = document) {
       kind: "info",
       title: "Найдена незавершённая операция записи",
       messages: [
-        "UUID и канонический черновик восстановлены из sessionStorage этой вкладки. Поля формы намеренно не заполнены автоматически: введите прежние значения, чтобы повторить операцию с тем же ключом, или явно начните новый черновик.",
+        "UUID и канонический черновик восстановлены из sessionStorage этой вкладки. Поля намеренно не заполнены автоматически: введите прежние значения и подтверждение, затем явно нажмите повтор. Даже при remaining=0 это будет повтор незавершённой записи с проверкой repository, а не новая операция.",
       ],
       actions: [
         { label: "Проверить «Мои записи»", href: "./orders.html" },
@@ -641,8 +660,10 @@ export function initializeBooking(root = document) {
     const slots = [...state.consultation.slots].sort((left, right) => left.startsAt.localeCompare(right.startsAt));
     slots.forEach((slot, index) => {
       const availability = getBookingSlotAvailability(slot);
+      const restoredReplaySlot = isRestoredPendingSlot(state.operation, state.consultation.id, slot.id);
+      const disabledForAvailability = !availability.isAvailable && !restoredReplaySlot;
       const checked = state.selectedSlotId === slot.id;
-      const disabled = !availability.isAvailable || state.pending || state.createdLookupMissing;
+      const disabled = disabledForAvailability || state.pending || state.createdLookupMissing;
       const id = `booking-slot-${index}`;
       const input = createElement("input", {
         attributes: {
@@ -660,14 +681,16 @@ export function initializeBooking(root = document) {
         createElement("strong", { text: formatSlotRange(slot.startsAt, slot.endsAt) }),
         createElement("span", { text: `${getFormatLabel(slot.mode)} · ${slot.location}` }),
         createElement("span", {
-          className: "slot-availability",
+          className: !availability.isAvailable && restoredReplaySlot ? "slot-replay-note" : "slot-availability",
           text: availability.isAvailable
             ? `Свободно: ${formatCapacity(availability.remainingCount)}`
-            : `Недоступно: ${availability.reason.toLocaleLowerCase()}`,
+            : restoredReplaySlot
+              ? "Повтор незавершённой записи; доступность проверит repository"
+              : `Недоступно: ${availability.reason.toLocaleLowerCase()}`,
         }),
       );
       const label = createElement("label", {
-        className: `slot-option${checked ? " is-selected" : ""}${!availability.isAvailable ? " is-disabled" : ""}`,
+        className: `slot-option${checked ? " is-selected" : ""}${disabledForAvailability ? " is-disabled" : ""}`,
         attributes: { for: id },
       }, [input, content]);
       slotOptions.append(label);
@@ -677,7 +700,9 @@ export function initializeBooking(root = document) {
     }
 
     const slot = selectedSlot();
-    if (slot && !getBookingSlotAvailability(slot).isAvailable) {
+    if (slot
+      && !getBookingSlotAvailability(slot).isAvailable
+      && !isRestoredPendingSlot(state.operation, state.consultation.id, slot.id)) {
       setFieldError("slotId", `${getBookingSlotAvailability(slot).reason}. Выберите другое доступное время.`);
     }
   }
@@ -685,15 +710,20 @@ export function initializeBooking(root = document) {
   function updateControls() {
     const slot = selectedSlot();
     const available = slot ? getBookingSlotAvailability(slot).isAvailable : false;
+    const restoredReplaySlot = slot
+      ? isRestoredPendingSlot(state.operation, state.consultation?.id, slot.id)
+      : false;
     const locked = state.pending || state.loading || Boolean(state.confirmation) || state.createdLookupMissing;
     slotFieldset.disabled = locked || !state.consultation;
-    formFields.disabled = locked || !state.consultation || !slot || !available;
+    formFields.disabled = locked || !state.consultation || !slot || (!available && !restoredReplaySlot);
     submitButton.disabled = formFields.disabled;
     submitButton.textContent = state.pending
       ? "Сохраняем запись…"
-      : state.operation
-        ? "Повторить с тем же ключом"
-        : "Сохранить демонстрационную запись";
+      : restoredReplaySlot
+        ? "Повторить незавершённую запись"
+        : state.operation
+          ? "Повторить с тем же ключом"
+          : "Сохранить демонстрационную запись";
     form.setAttribute("aria-busy", String(state.pending));
     detailsSection.hidden = !state.consultation || Boolean(state.confirmation);
     confirmation.hidden = !state.confirmation && !state.cancelledBooking;
@@ -914,6 +944,7 @@ export function initializeBooking(root = document) {
       slot: selectedSlot(),
       instituteIds: state.catalog?.institutes.map((institute) => institute.id) ?? [],
       allowedInstituteIds: state.consultation?.instituteIds,
+      restoredOperation: state.operation,
     });
     if (!validation.isValid) {
       applyValidationErrors(validation.errors);
@@ -939,7 +970,7 @@ export function initializeBooking(root = document) {
       return;
     }
     state.operation = operationResult.operation;
-    state.restoredPending = false;
+    const restoredReplay = isRestoredPendingReplay(state.operation, validation.draft);
     const pendingSaved = savePendingBookingOperation(state.operation, validation.draft);
     const operationKey = state.operation.key;
     state.pending = true;
@@ -947,7 +978,7 @@ export function initializeBooking(root = document) {
     updateControls();
     renderFeedback({
       kind: "info",
-      title: "Создаём демонстрационную запись…",
+      title: restoredReplay ? "Повторяем незавершённую запись…" : "Создаём демонстрационную запись…",
       messages: [pendingSaved
         ? "UUID и канонический черновик сохранены в sessionStorage этой вкладки. После обновления введите прежние значения: автозаполнение намеренно не выполняется."
         : "Не удалось сохранить операцию в sessionStorage. Не обновляйте страницу до ответа; повтор без обновления использует тот же UUID."],
@@ -962,7 +993,7 @@ export function initializeBooking(root = document) {
       }
       state.pending = false;
       discardPendingOperation();
-      if (booking.status === BOOKING_STATUS.ACTIVE) {
+      if (booking.status === BOOKING_STATUS.ACTIVE && !restoredReplay) {
         const bookedSlot = selectedSlot();
         if (bookedSlot) {
           const availability = getBookingSlotAvailability(bookedSlot);
