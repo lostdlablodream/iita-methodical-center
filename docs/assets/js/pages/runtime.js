@@ -15,21 +15,21 @@ export function getPublicErrorMessage(error) {
 function getModeCopy(mode) {
   if (mode === LOCAL_MODE) {
     return {
-      badge: "Local · этот браузер",
-      title: "Local mode: записи только в этом браузере",
+      badge: "Локальный режим",
+      title: "Локальный режим: записи только в этом браузере",
       text: "Локальный демонстрационный режим. Записи хранятся только в этом браузере, не синхронизируются между устройствами и могут быть удалены при очистке данных.",
     };
   }
   if (mode === SERVER_MODE) {
     return {
-      badge: "Server · общий демо API",
-      title: "Server mode: общий демонстрационный API",
+      badge: "Серверный режим",
+      title: "Серверный режим: общий демонстрационный API",
       text: "Серверный демонстрационный режим. Каталог и записи используют общий учебный API; это не официальное расписание и не рабочая система ИИТА.",
     };
   }
   return {
     badge: "Режим не определён",
-    title: "Режим repository не определён",
+    title: "Режим хранения не определён",
     text: "Режим хранения пока не выбран.",
   };
 }
@@ -57,7 +57,7 @@ export function createRepositoryRuntime({ root = document, onStateChange = () =>
     for (const badge of badges) {
       badge.textContent = isLoading ? "Определяем режим…" : copy.badge;
       badge.title = isLoading ? "Проверяем доступность общего демонстрационного API" : copy.title;
-      badge.setAttribute("aria-label", isLoading ? "Определение режима repository" : copy.title);
+      badge.setAttribute("aria-label", isLoading ? "Определение режима хранения" : copy.title);
       badge.classList.toggle("badge-neutral", isLoading || isError);
     }
 
@@ -72,28 +72,28 @@ export function createRepositoryRuntime({ root = document, onStateChange = () =>
     if (isLoading) {
       alert.append(createElement("strong", {
         text: state.forceLocal
-          ? "Явно подключаем local mode."
+          ? "Явно подключаем локальный режим."
           : "Проверяем доступность общего демо API…",
       }));
       alert.append(createElement("p", {
-        text: "Дождитесь результата. При сетевой ошибке local mode не включается автоматически.",
+        text: "Дождитесь результата. При сетевой ошибке локальный режим не включается автоматически.",
       }));
       return;
     }
 
     if (isError) {
       alert.append(
-        createElement("strong", { text: "Не удалось определить или загрузить режим repository." }),
+        createElement("strong", { text: "Не удалось определить или загрузить режим хранения." }),
         createElement("p", { text: getPublicErrorMessage(state.error) }),
         createElement("p", {
-          text: "Автоматический переход в local не выполнялся: серверные и локальные записи не смешиваются незаметно.",
+          text: "Автоматический переход в локальный режим не выполнялся: серверные и локальные записи не смешиваются незаметно.",
         }),
       );
       const actions = createElement("div", { className: "button-row repository-actions" });
       actions.append(createAction("Повторить проверку", "data-repository-retry"));
       if (mode !== LOCAL_MODE) {
         actions.append(createAction(
-          "Использовать local (forceLocalRepository)",
+          "Явно использовать локальный режим",
           "data-force-local-repository",
         ));
       }

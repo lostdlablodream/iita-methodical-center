@@ -26,6 +26,14 @@
   min-width: 0;
 }
 
+.summary-card h2 {
+  max-width: 100%;
+  font-size: clamp(1.35rem, 2vw, 1.65rem);
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
 .booking-aside {
   display: grid;
   gap: 1.5rem;
@@ -143,6 +151,11 @@
 .confirmation-card {
   border-color: #bfe1ce;
   background: var(--color-success-soft);
+}
+
+.confirmation-card.is-cancelled {
+  border-color: #ebd9a9;
+  background: var(--color-warning-soft);
 }
 
 .confirmation-card h2 {

@@ -1,6 +1,7 @@
 import { clearElement, createElement } from "../components.js";
 import { DEFAULT_INSTITUTE_ID } from "../config.js";
 import {
+  BOOKING_STATUS,
   CONSULTATION_FORMAT,
   NEED_TAGS,
   findConsultationSlot,
@@ -16,7 +17,7 @@ import {
   RepositoryError,
   normalizeRepositoryError,
 } from "../repository.js";
-import { canonicalizeBookingPayload } from "../repository.local.js";
+import { canonicalizeBookingPayload, normalizeBookingInput } from "../repository.local.js";
 import { renderWeatherWidget } from "../weather.js";
 import { createRepositoryRuntime, getPublicErrorMessage } from "./runtime.js";
 
@@ -28,6 +29,8 @@ const NEED_TAG_LABELS = Object.freeze({
   [NEED_TAGS.ACCESSIBILITY]: "Доступные форматы",
 });
 const FIELD_ORDER = Object.freeze(["slotId", "displayName", "instituteId", "need", "needTags", "demoConfirmed"]);
+export const PENDING_BOOKING_SESSION_KEY = "iita.consultations.pending-booking.v1";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function cleanString(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -61,7 +64,7 @@ export function buildBookingUrl(consultationId = "", slotId = "", createdId = ""
 }
 
 export function createOrdersLink(bookingId) {
-  const parameters = new URLSearchParams({ created: cleanString(bookingId) });
+  const parameters = new URLSearchParams({ bookingId: cleanString(bookingId) });
   return `./orders.html?${parameters.toString()}`;
 }
 
@@ -192,6 +195,125 @@ export function ensureBookingOperation(operation, draft, cryptoImpl = globalThis
   };
 }
 
+function resolvePendingSessionStorage(storage) {
+  if (storage !== undefined) {
+    return storage;
+  }
+  try {
+    return globalThis.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+export function savePendingBookingOperation(operation, draft, storage) {
+  const session = resolvePendingSessionStorage(storage);
+  if (!session || typeof session.setItem !== "function") {
+    return false;
+  }
+  try {
+    const normalizedDraft = normalizeBookingInput(draft);
+    const canonical = canonicalizeBookingPayload(normalizedDraft);
+    if (!operation || operation.fingerprint !== canonical || !UUID_PATTERN.test(operation.key)) {
+      return false;
+    }
+    session.setItem(PENDING_BOOKING_SESSION_KEY, JSON.stringify({
+      version: 1,
+      key: operation.key,
+      canonical,
+      draft: normalizedDraft,
+      consultationId: normalizedDraft.consultationId,
+      slotId: normalizedDraft.slotId,
+    }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function restorePendingBookingOperation(storage) {
+  const session = resolvePendingSessionStorage(storage);
+  if (!session || typeof session.getItem !== "function") {
+    return null;
+  }
+  try {
+    const serialized = session.getItem(PENDING_BOOKING_SESSION_KEY);
+    if (serialized === null || serialized === undefined) {
+      return null;
+    }
+    if (typeof serialized !== "string") {
+      return null;
+    }
+    const record = JSON.parse(serialized);
+    if (!record || record.version !== 1 || !UUID_PATTERN.test(record.key)) {
+      return null;
+    }
+    const draft = normalizeBookingInput(record.draft);
+    const canonical = canonicalizeBookingPayload(draft);
+    if (record.canonical !== canonical
+      || record.consultationId !== draft.consultationId
+      || record.slotId !== draft.slotId) {
+      return null;
+    }
+    return {
+      key: record.key,
+      fingerprint: canonical,
+      draft,
+      consultationId: draft.consultationId,
+      slotId: draft.slotId,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingBookingOperation(storage) {
+  const session = resolvePendingSessionStorage(storage);
+  if (!session || typeof session.removeItem !== "function") {
+    return false;
+  }
+  try {
+    session.removeItem(PENDING_BOOKING_SESSION_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function shouldDiscardPendingOperation(error) {
+  return normalizeRepositoryError(error).code === ERROR_CODES.VALIDATION_ERROR;
+}
+
+export function resolveBookingConfirmation(bookings, bookingId, consultationId, slotId) {
+  const booking = Array.isArray(bookings)
+    ? bookings.find((candidate) => candidate.id === cleanString(bookingId))
+    : null;
+  if (!booking) {
+    return { status: "missing", booking: null };
+  }
+  if (booking.consultationId !== cleanString(consultationId) || booking.slotId !== cleanString(slotId)) {
+    return { status: "mismatched", booking: null };
+  }
+  if (booking.status === BOOKING_STATUS.ACTIVE) {
+    return { status: "active", booking };
+  }
+  if (booking.status === BOOKING_STATUS.CANCELLED) {
+    return { status: "cancelled", booking };
+  }
+  return { status: "unavailable", booking: null };
+}
+
+export function pendingOperationMatchesBooking(operation, booking) {
+  if (!operation || !booking) {
+    return false;
+  }
+  try {
+    return operation.fingerprint === canonicalizeBookingPayload(normalizeBookingInput(booking));
+  } catch {
+    return false;
+  }
+}
+
 function createSummaryRow(label, value) {
   const row = createElement("div");
   row.append(createElement("dt", { text: label }), createElement("dd", { text: value }));
@@ -245,6 +367,7 @@ export function initializeBooking(root = document) {
     [...root.querySelectorAll("[data-field-error]")].map((element) => [element.dataset.fieldError, element]),
   );
   const initial = readBookingLocation(window.location.search);
+  const restoredPendingOperation = restorePendingBookingOperation();
   const state = {
     consultationId: initial.consultationId,
     selectedSlotId: initial.slotId,
@@ -252,8 +375,10 @@ export function initializeBooking(root = document) {
     catalog: null,
     consultation: null,
     confirmation: null,
+    cancelledBooking: null,
     createdLookupMissing: false,
-    operation: null,
+    operation: restoredPendingOperation,
+    restoredPending: Boolean(restoredPendingOperation),
     pending: false,
     loading: false,
   };
@@ -279,6 +404,29 @@ export function initializeBooking(root = document) {
   function hideFeedback() {
     feedback.hidden = true;
     clearElement(feedback);
+  }
+
+  function discardPendingOperation() {
+    state.operation = null;
+    state.restoredPending = false;
+    clearPendingBookingOperation();
+  }
+
+  function renderRestoredPendingNotice() {
+    if (!state.restoredPending || !state.operation || state.createdId) {
+      return;
+    }
+    renderFeedback({
+      kind: "info",
+      title: "Найдена незавершённая операция записи",
+      messages: [
+        "UUID и канонический черновик восстановлены из sessionStorage этой вкладки. Поля формы намеренно не заполнены автоматически: введите прежние значения, чтобы повторить операцию с тем же ключом, или явно начните новый черновик.",
+      ],
+      actions: [
+        { label: "Проверить «Мои записи»", href: "./orders.html" },
+        { label: "Начать новый черновик", attribute: "data-new-draft" },
+      ],
+    });
   }
 
   function renderFeedback({ kind = "error", title, messages = [], actions = [] }) {
@@ -548,20 +696,26 @@ export function initializeBooking(root = document) {
         : "Сохранить демонстрационную запись";
     form.setAttribute("aria-busy", String(state.pending));
     detailsSection.hidden = !state.consultation || Boolean(state.confirmation);
-    confirmation.hidden = !state.confirmation;
+    confirmation.hidden = !state.confirmation && !state.cancelledBooking;
     renderSlotOptions();
   }
 
   function renderConfirmation() {
     clearElement(confirmation);
-    if (!state.confirmation) {
+    const booking = state.confirmation ?? state.cancelledBooking;
+    if (!booking) {
       confirmation.hidden = true;
+      confirmation.classList.remove("is-cancelled");
       return;
     }
-    const booking = state.confirmation;
+    const isCancelled = Boolean(state.cancelledBooking);
+    confirmation.classList.toggle("is-cancelled", isCancelled);
     confirmation.append(
-      createElement("p", { className: "eyebrow", text: "Запись подтверждена" }),
-      createElement("h2", { text: "Запись сохранена", attributes: { id: "confirmation-title" } }),
+      createElement("p", { className: "eyebrow", text: isCancelled ? "Статус записи" : "Запись подтверждена" }),
+      createElement("h2", {
+        text: isCancelled ? "Запись отменена" : "Запись сохранена",
+        attributes: { id: "confirmation-title" },
+      }),
       createElement("p", { text: booking.title }),
       createElement("p", {
         text: `${formatDateTime(booking.startsAt)}–${formatTime(booking.endsAt)}, ${getFormatLabel(booking.mode)}`,
@@ -571,24 +725,34 @@ export function initializeBooking(root = document) {
         createElement("code", { className: "confirmation-id", text: booking.id }),
       ]),
       createElement("p", {
-        text: runtime.mode === LOCAL_MODE
-          ? "Подтверждение сохранено в local repository этого браузера."
-          : "Подтверждение сохранено в общем демонстрационном server repository.",
+        text: isCancelled
+          ? "Эта запись отменена и не является активной. Старый черновик не подставлен в форму; выберите слот и заполните новые данные или явно начните новый черновик."
+          : runtime.mode === LOCAL_MODE
+            ? "Подтверждение сохранено в локальном repository этого браузера."
+            : "Подтверждение сохранено в общем демонстрационном серверном repository.",
       }),
     );
     const actions = createElement("div", { className: "button-row" });
-    actions.append(
-      createElement("a", {
-        className: "button button-primary",
-        text: "Открыть созданную запись",
-        attributes: { href: createOrdersLink(booking.id) },
-      }),
-      createCatalogLink("Выбрать другую консультацию"),
-    );
+    actions.append(createElement("a", {
+      className: "button button-primary",
+      text: isCancelled ? "Открыть отменённую запись" : "Открыть созданную запись",
+      attributes: { href: createOrdersLink(booking.id) },
+    }));
+    if (isCancelled) {
+      actions.append(createElement("button", {
+        className: "button button-secondary",
+        text: "Начать новый черновик",
+        attributes: { type: "button", "data-new-draft": "true" },
+      }));
+    } else {
+      actions.append(createCatalogLink("Выбрать другую консультацию"));
+    }
     confirmation.append(actions);
     confirmation.append(createElement("p", {
       className: "text-small",
-      text: "Ссылка содержит ID созданной записи. При обновлении этой страницы подтверждение восстанавливается из repository, а не имитируется заново.",
+      text: isCancelled
+        ? "Статус проверен по repository. Ссылка ведёт к отменённой записи, а не к активному подтверждению."
+        : "Ссылка содержит ID созданной записи. При обновлении этой страницы подтверждение восстанавливается из repository, а не имитируется заново.",
     }));
     confirmation.hidden = false;
   }
@@ -636,8 +800,9 @@ export function initializeBooking(root = document) {
   }
 
   function startNewDraft() {
-    state.operation = null;
+    discardPendingOperation();
     state.confirmation = null;
+    state.cancelledBooking = null;
     state.createdLookupMissing = false;
     state.createdId = "";
     state.selectedSlotId = "";
@@ -655,7 +820,7 @@ export function initializeBooking(root = document) {
     slotFieldset.focus({ preventScroll: false });
   }
 
-  function renderSubmissionError(error) {
+  function renderSubmissionError(error, { pendingSaved = false } = {}) {
     const normalized = normalizeRepositoryError(error);
     const fields = normalized.fields ?? {};
     const knownFields = Object.fromEntries(
@@ -704,7 +869,9 @@ export function initializeBooking(root = document) {
       case ERROR_CODES.INVALID_RESPONSE:
         content = {
           title: "Окончательный ответ не получен",
-          messages: ["Запись могла быть принята. Повторите неизменённую форму с тем же UUID или сначала проверьте «Мои записи». Новый ключ автоматически не создаётся.", normalized.message],
+          messages: [pendingSaved
+            ? "Запись могла быть принята. UUID и канонический черновик сохраняются в sessionStorage этой вкладки. После обновления введите прежние значения для повтора с тем же ключом или сначала проверьте «Мои записи». Новый ключ автоматически не создаётся."
+            : "Запись могла быть принята. Сохранить операцию в sessionStorage не удалось: не обновляйте страницу и повторите неизменённую форму с тем же UUID либо проверьте «Мои записи».", normalized.message],
           actions: [retryAction, ordersAction, newDraftAction],
         };
         break;
@@ -718,7 +885,7 @@ export function initializeBooking(root = document) {
       case ERROR_CODES.VALIDATION_ERROR:
         content = {
           title: "Проверьте данные записи",
-          messages: [normalized.message],
+          messages: [normalized.message, "Переданные значения окончательно отклонены. Сохранённая операция очищена; после исправления будет создан новый UUID без конфликта со старым содержимым."],
           actions: [],
         };
         break;
@@ -750,7 +917,13 @@ export function initializeBooking(root = document) {
     });
     if (!validation.isValid) {
       applyValidationErrors(validation.errors);
-      renderFeedback({ title: "Форма пока не готова", messages: ["Исправьте отмеченные поля. UUID ещё не создан, запрос не отправлялся."], actions: [] });
+      renderFeedback({
+        title: "Форма пока не готова",
+        messages: [state.operation
+          ? "Исправьте отмеченные поля. Сохранённый UUID не изменён; новый запрос не отправлялся."
+          : "Исправьте отмеченные поля. UUID ещё не создан, запрос не отправлялся."],
+        actions: [],
+      });
       return;
     }
 
@@ -766,32 +939,44 @@ export function initializeBooking(root = document) {
       return;
     }
     state.operation = operationResult.operation;
+    state.restoredPending = false;
+    const pendingSaved = savePendingBookingOperation(state.operation, validation.draft);
+    const operationKey = state.operation.key;
     state.pending = true;
     clearValidationErrors();
     updateControls();
     renderFeedback({
       kind: "info",
       title: "Создаём демонстрационную запись…",
-      messages: ["Не закрывайте страницу. При повторе этой же операции будет использован тот же UUID идемпотентности."],
+      messages: [pendingSaved
+        ? "UUID и канонический черновик сохранены в sessionStorage этой вкладки. После обновления введите прежние значения: автозаполнение намеренно не выполняется."
+        : "Не удалось сохранить операцию в sessionStorage. Не обновляйте страницу до ответа; повтор без обновления использует тот же UUID."],
     });
 
     try {
       const booking = await runtime.repository.createBooking(validation.draft, {
-        idempotencyKey: state.operation.key,
+        idempotencyKey: operationKey,
       });
+      if (![BOOKING_STATUS.ACTIVE, BOOKING_STATUS.CANCELLED].includes(booking.status)) {
+        throw new RepositoryError(ERROR_CODES.INVALID_RESPONSE, "Repository вернул неизвестный статус записи.");
+      }
       state.pending = false;
-      const bookedSlot = selectedSlot();
-      if (bookedSlot) {
-        const availability = getBookingSlotAvailability(bookedSlot);
-        bookedSlot.remainingCount = Math.max(0, availability.remainingCount - 1);
-        if (Number.isInteger(bookedSlot.reservedCount)) {
-          bookedSlot.reservedCount += 1;
-        }
-        if (bookedSlot.remainingCount === 0) {
-          bookedSlot.isOpen = false;
+      discardPendingOperation();
+      if (booking.status === BOOKING_STATUS.ACTIVE) {
+        const bookedSlot = selectedSlot();
+        if (bookedSlot) {
+          const availability = getBookingSlotAvailability(bookedSlot);
+          bookedSlot.remainingCount = Math.max(0, availability.remainingCount - 1);
+          if (Number.isInteger(bookedSlot.reservedCount)) {
+            bookedSlot.reservedCount += 1;
+          }
+          if (bookedSlot.remainingCount === 0) {
+            bookedSlot.isOpen = false;
+          }
         }
       }
-      state.confirmation = booking;
+      state.confirmation = booking.status === BOOKING_STATUS.ACTIVE ? booking : null;
+      state.cancelledBooking = booking.status === BOOKING_STATUS.CANCELLED ? booking : null;
       state.createdId = booking.id;
       state.createdLookupMissing = false;
       hideFeedback();
@@ -803,8 +988,11 @@ export function initializeBooking(root = document) {
       confirmation.focus({ preventScroll: false });
     } catch (error) {
       state.pending = false;
+      if (shouldDiscardPendingOperation(error)) {
+        discardPendingOperation();
+      }
       updateControls();
-      renderSubmissionError(error);
+      renderSubmissionError(error, { pendingSaved });
       renderSummary();
     }
   }
@@ -812,6 +1000,7 @@ export function initializeBooking(root = document) {
   function renderLoading() {
     state.loading = true;
     state.confirmation = null;
+    state.cancelledBooking = null;
     confirmation.hidden = true;
     selection.setAttribute("aria-busy", "true");
     clearElement(selection);
@@ -835,6 +1024,7 @@ export function initializeBooking(root = document) {
     state.loading = false;
     state.consultation = null;
     state.confirmation = null;
+    state.cancelledBooking = null;
     clearElement(selection);
     selection.setAttribute("aria-busy", "false");
     selectionBadge.textContent = "Ошибка загрузки";
@@ -893,6 +1083,7 @@ export function initializeBooking(root = document) {
       const resolution = resolveBookingSelection(catalog, state.consultationId, state.selectedSlotId);
       state.consultation = resolution.consultation;
       state.confirmation = null;
+      state.cancelledBooking = null;
       state.createdLookupMissing = false;
       if (resolution.status === "needs-slot" || resolution.status === "missing-consultation"
         || resolution.status === "unknown-consultation") {
@@ -900,13 +1091,23 @@ export function initializeBooking(root = document) {
       }
 
       if (state.createdId && Array.isArray(bookings)) {
-        const booking = bookings.find((candidate) => candidate.id === state.createdId);
-        if (booking && resolution.status === "ok"
-          && booking.consultationId === state.consultationId
-          && booking.slotId === state.selectedSlotId) {
-          state.confirmation = booking;
+        const restored = resolution.status === "ok"
+          ? resolveBookingConfirmation(
+            bookings,
+            state.createdId,
+            state.consultationId,
+            state.selectedSlotId,
+          )
+          : { status: "mismatched", booking: null };
+        if (restored.status === "active") {
+          state.confirmation = restored.booking;
+        } else if (restored.status === "cancelled") {
+          state.cancelledBooking = restored.booking;
         } else {
           state.createdLookupMissing = true;
+        }
+        if (restored.booking && pendingOperationMatchesBooking(state.operation, restored.booking)) {
+          discardPendingOperation();
         }
       }
 
@@ -926,6 +1127,8 @@ export function initializeBooking(root = document) {
             { label: "Начать новый черновик", attribute: "data-new-draft" },
           ],
         });
+      } else {
+        renderRestoredPendingNotice();
       }
     } catch (error) {
       if (currentRequest === requestNumber && repository === runtime.repository) {
@@ -974,6 +1177,11 @@ export function initializeBooking(root = document) {
       void loadBooking();
     }
   });
+  confirmation.addEventListener("click", (event) => {
+    if (event.target.closest("[data-new-draft]")) {
+      startNewDraft();
+    }
+  });
   selectionError.addEventListener("click", (event) => {
     if (event.target.closest("[data-booking-retry]")) {
       void loadBooking();
@@ -994,6 +1202,7 @@ export function initializeBooking(root = document) {
         state.loading = false;
         state.consultation = null;
         state.confirmation = null;
+        state.cancelledBooking = null;
         weatherWidget?.cancel();
         weatherStartsAt = "";
         weatherContainer.hidden = true;
