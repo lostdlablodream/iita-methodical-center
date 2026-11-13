@@ -15,6 +15,7 @@ export const WEATHER_TIMEOUT_MS = 8000;
 export const SLOT_REFERENCE_DATE = "2026-11-13";
 
 export const QUERY_PARAMS = Object.freeze({
+  TOPIC: "topicId",
   CONSULTATION: "consultationId",
   SLOT: "slotId",
 });

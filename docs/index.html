@@ -5,10 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#f4f6fb">
-  <meta name="description" content="Методика — учебный сервис записи преподавателей ИИТА СПбГУПТД на методические консультации.">
+  <meta name="description" content="Методика — учебный сервис подбора методических консультаций для преподавателей ИИТА СПбГУПТД.">
   <title>Методика — методические консультации ИИТА</title>
   <link rel="stylesheet" href="./assets/css/common.css">
+  <link rel="stylesheet" href="./assets/css/home.css">
   <script type="module" src="./assets/js/components.js"></script>
+  <script type="module" src="./assets/js/pages/home.js"></script>
 </head>
 <body data-page="home">
   <a class="skip-link" href="#main-content">Перейти к содержанию</a>
@@ -41,15 +43,15 @@
       <div class="hero-content">
         <p class="eyebrow">Методическое сопровождение преподавателей</p>
         <h1 id="hero-title">Идеи для занятий начинаются с <span>хорошего вопроса</span></h1>
-        <p class="hero-lead">Выберите тему, найдите удобное время и запишитесь на методическую консультацию. Сервис помогает обозначить задачу и сохранить план дальнейшей работы.</p>
+        <p class="hero-lead">Обозначьте свою задачу, получите рекомендацию из демонстрационного справочника и перейдите к подходящей консультации. Начать можно без регистрации и длинной формы.</p>
         <div class="button-row">
-          <a class="button button-primary" href="./catalog.html">Выбрать консультацию</a>
+          <a class="button button-primary" href="#compass">Подобрать консультацию</a>
           <a class="button button-secondary" href="#how-it-works">Как это работает</a>
         </div>
         <ul class="hero-points" aria-label="Преимущества сервиса">
+          <li>Подбор по сценарию</li>
           <li>Онлайн и очно</li>
-          <li>Понятные направления</li>
-          <li>Записи в одном месте</li>
+          <li>Единый справочник</li>
         </ul>
       </div>
       <aside class="hero-card card" aria-label="Возможности демонстрационного справочника">
@@ -65,11 +67,63 @@
       </aside>
     </section>
 
-    <div class="container">
+    <div class="container home-mode">
       <div class="alert alert-info" role="note">
-        <strong>Учебный режим.</strong> Это каркас демонстрационного сервиса, а не официальное расписание. Запись и персональные рекомендации будут добавлены следующими этапами.
+        <strong>Учебный статический режим.</strong> Компас, поиск по FAQ и прогноз погоды работают на этой странице, а рекомендации строятся по демонстрационным данным. Оформление записи на этой ветке ещё не реализовано: переходы в каталог сохраняют выбранную тему и консультацию, но не создают запись.
       </div>
+      <noscript>
+        <p class="alert alert-warning">Для компаса, поиска и погоды нужен JavaScript. Вопросы и ответы ниже доступны и без него.</p>
+      </noscript>
     </div>
+
+    <section class="section container" id="compass" aria-labelledby="compass-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Методический компас</p>
+          <h2 id="compass-title">Что вы хотите изменить в своей работе?</h2>
+          <p class="section-lead">Выберите близкий сценарий — покажем тему и до двух консультаций из общего демонстрационного справочника.</p>
+        </div>
+      </div>
+      <div class="compass-layout">
+        <div class="card compass-picker">
+          <fieldset class="compass-scenarios" data-compass-scenarios>
+            <legend>1. Выберите свой запрос</legend>
+            <button class="compass-scenario" type="button" data-scenario="rebuild-course" aria-pressed="false" aria-controls="compass-result">
+              <strong>Перестроить курс</strong>
+              <span>Связать цели, модули и задания в понятный маршрут</span>
+            </button>
+            <button class="compass-scenario" type="button" data-scenario="use-ai" aria-pressed="false" aria-controls="compass-result">
+              <strong>Разобраться с ИИ</strong>
+              <span>Найти полезные сценарии и установить разумные границы</span>
+            </button>
+            <button class="compass-scenario" type="button" data-scenario="assessment" aria-pressed="false" aria-controls="compass-result">
+              <strong>Настроить оценивание</strong>
+              <span>Сделать критерии прозрачными, а обратную связь полезной</span>
+            </button>
+            <button class="compass-scenario" type="button" data-scenario="project" aria-pressed="false" aria-controls="compass-result">
+              <strong>Запустить проект</strong>
+              <span>Собрать бриф, роли команды и контрольные точки</span>
+            </button>
+            <button class="compass-scenario" type="button" data-scenario="accessibility" aria-pressed="false" aria-controls="compass-result">
+              <strong>Сделать материалы доступнее</strong>
+              <span>Улучшить документы, медиа и навигацию в LMS</span>
+            </button>
+            <button class="compass-scenario" type="button" data-scenario="publication" aria-pressed="false" aria-controls="compass-result">
+              <strong>Подготовить публикацию</strong>
+              <span>Выстроить аргументацию и план работы с рукописью</span>
+            </button>
+          </fieldset>
+        </div>
+        <div class="card compass-result" id="compass-result" data-compass-result aria-live="polite" aria-atomic="true" aria-busy="false">
+          <div class="compass-placeholder">
+            <div class="compass-mark" aria-hidden="true"><span></span></div>
+            <p class="eyebrow">2. Получите направление</p>
+            <h3>Здесь появится ваш маршрут</h3>
+            <p>Компас сопоставит выбранный запрос с темой справочника. Это подсказка по демонстрационным данным, а не автоматическая запись.</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section class="section container" aria-labelledby="directions-title">
       <div class="section-heading">
@@ -84,31 +138,37 @@
           <span class="topic-number" aria-hidden="true">01</span>
           <h3>Цифровые сервисы и LMS</h3>
           <p>Структура курса, задания, коммуникация и понятная навигация для студентов.</p>
+          <a class="text-link topic-card-link" href="./catalog.html?topicId=digital-lms">Консультации по теме</a>
         </article>
         <article class="card topic-card">
           <span class="topic-number" aria-hidden="true">02</span>
           <h3>ИИ как помощник преподавателя</h3>
           <p>Сценарии подготовки материалов, проверка результатов и ответственное использование.</p>
+          <a class="text-link topic-card-link" href="./catalog.html?topicId=ai-assistant">Консультации по теме</a>
         </article>
         <article class="card topic-card">
           <span class="topic-number" aria-hidden="true">03</span>
           <h3>Методика оценивания</h3>
           <p>Критерии, рубрики, формирующее оценивание и полезная обратная связь.</p>
+          <a class="text-link topic-card-link" href="./catalog.html?topicId=assessment-methods">Консультации по теме</a>
         </article>
         <article class="card topic-card">
           <span class="topic-number" aria-hidden="true">04</span>
           <h3>Проектное обучение</h3>
           <p>Замысел проекта, роли команды, контрольные точки и оценка вклада участников.</p>
+          <a class="text-link topic-card-link" href="./catalog.html?topicId=project-learning">Консультации по теме</a>
         </article>
         <article class="card topic-card">
           <span class="topic-number" aria-hidden="true">05</span>
           <h3>Доступность материалов</h3>
           <p>Читаемые документы, понятная структура и альтернативные форматы контента.</p>
+          <a class="text-link topic-card-link" href="./catalog.html?topicId=accessibility">Консультации по теме</a>
         </article>
         <article class="card topic-card">
           <span class="topic-number" aria-hidden="true">06</span>
           <h3>Научные публикации</h3>
           <p>План статьи, выбор источников, представление результатов и работа с замечаниями.</p>
+          <a class="text-link topic-card-link" href="./catalog.html?topicId=research-publications">Консультации по теме</a>
         </article>
       </div>
     </section>
@@ -118,35 +178,115 @@
         <div class="section-heading">
           <div>
             <p class="eyebrow">Простой маршрут</p>
-            <h2 id="how-title">Как устроена запись</h2>
+            <h2 id="how-title">От запроса к консультации</h2>
           </div>
         </div>
         <ol class="steps-list">
-          <li class="card"><span class="step-index">1</span><h3>Определите запрос</h3><p>Выберите направление и кратко сформулируйте, что хотите изменить в своём курсе.</p></li>
-          <li class="card"><span class="step-index">2</span><h3>Найдите время</h3><p>Сравните формат, аудиторию и доступные слоты в общем каталоге.</p></li>
-          <li class="card"><span class="step-index">3</span><h3>Оформите запись</h3><p>Проверьте параметры и сохраните запись без оплаты и создания учётной записи.</p></li>
-          <li class="card"><span class="step-index">4</span><h3>Вернитесь к плану</h3><p>Откройте «Мои записи», чтобы уточнить детали или отменить запись.</p></li>
+          <li class="card"><span class="step-index">1</span><h3>Определите запрос</h3><p>Выберите сценарий в компасе или сразу откройте одно из шести направлений.</p></li>
+          <li class="card"><span class="step-index">2</span><h3>Изучите подборку</h3><p>Сравните название, краткое описание и длительность предложенных консультаций.</p></li>
+          <li class="card"><span class="step-index">3</span><h3>Перейдите в каталог</h3><p>Ссылка передаст topicId и consultationId. На этой ветке переход ещё не оформляет запись.</p></li>
+          <li class="card"><span class="step-index">4</span><h3>Подготовьте вопрос</h3><p>Зафиксируйте желаемый результат, а перед очной встречей посмотрите текущую погоду.</p></li>
         </ol>
       </div>
     </section>
 
     <section class="section container" aria-labelledby="needs-title">
-      <div class="split-panel card">
+      <div class="split-panel card needs-panel">
         <div>
           <p class="eyebrow">Потребности преподавателей</p>
-          <h2 id="needs-title">Не только расписание, но и обратная связь</h2>
-          <p>При оформлении можно будет отметить интересующие задачи. Обобщённые темы помогут планировать дальнейшие методические встречи без публикации личных сведений.</p>
+          <h2 id="needs-title">Запросы помогают планировать встречи</h2>
+          <p>В следующих этапах при оформлении предполагается собирать только методические теги и краткое описание задачи. Обобщённые потребности помогут планировать темы встреч без публикации личных сведений. Сейчас форма сбора и отправки потребностей отсутствует.</p>
+          <div class="tag-list" aria-label="Примеры запросов">
+            <span class="tag">Настроить курс</span>
+            <span class="tag">Пересобрать оценивание</span>
+            <span class="tag">Подготовить проект</span>
+            <span class="tag">Улучшить материалы</span>
+            <span class="tag">Собрать план статьи</span>
+          </div>
         </div>
-        <div class="tag-list" aria-label="Примеры запросов">
-          <span class="tag">Настроить курс</span>
-          <span class="tag">Пересобрать оценивание</span>
-          <span class="tag">Подготовить проект</span>
-          <span class="tag">Улучшить материалы</span>
-          <span class="tag">Собрать план статьи</span>
+        <aside class="privacy-note" aria-labelledby="privacy-title">
+          <h3 id="privacy-title">Приватность в статическом режиме</h3>
+          <ul class="privacy-list">
+            <li>Выбор сценария и поиск по FAQ остаются в текущей странице и не сохраняются после перезагрузки.</li>
+            <li>Для рекомендаций загружается только общий seed-файл; текст запроса не требуется.</li>
+            <li>В Open-Meteo отправляются лишь фиксированные координаты Санкт-Петербурга и параметры прогноза.</li>
+            <li>Не вводите настоящие персональные данные, сведения о студентах, пароли или секреты.</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section section-muted" aria-labelledby="weather-title">
+      <div class="container weather-layout">
+        <div class="weather-intro">
+          <p class="eyebrow">Перед очной встречей</p>
+          <h2 id="weather-title">Проверьте погоду по дороге</h2>
+          <p>Текущие условия в Санкт-Петербурге помогут решить, взять ли зонт и сколько времени оставить на дорогу. Для онлайн-консультации этот блок не нужен.</p>
+          <p class="text-muted text-small">Прогноз справочный и не влияет на выбор консультации. Геолокация устройства не запрашивается.</p>
+        </div>
+        <div class="card" id="home-weather" data-home-weather>
+          <p class="text-muted">Загрузка виджета погоды…</p>
         </div>
       </div>
-      <div id="home-personalization" data-home-js="personalization" hidden></div>
-      <div id="home-recommendations" data-home-js="recommendations" hidden></div>
+    </section>
+
+    <section class="section container" aria-labelledby="faq-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Вопросы и ответы</p>
+          <h2 id="faq-title">Перед тем как выбрать консультацию</h2>
+          <p class="section-lead">Ищите по словам из вопроса или ответа, например «очно», «60» или «данные».</p>
+        </div>
+      </div>
+      <div class="card faq-toolbar">
+        <div class="field faq-search-field">
+          <label for="faq-search">Поиск по вопросам и ответам</label>
+          <div class="faq-search-row">
+            <input class="input" id="faq-search" type="search" placeholder="Например, отмена" autocomplete="off" aria-describedby="faq-count" aria-controls="faq-list" data-faq-search>
+            <button class="button button-secondary faq-clear" type="button" data-faq-clear hidden>Очистить</button>
+          </div>
+        </div>
+        <p class="faq-count" id="faq-count" aria-live="polite" aria-atomic="true" data-faq-count>Показаны все 8 вопросов</p>
+      </div>
+      <div class="faq-list" id="faq-list" data-faq-list>
+        <details class="card faq-item">
+          <summary>Чем отличаются онлайн и очная консультации?</summary>
+          <div class="faq-answer"><p>Онлайн-встреча подходит для разбора экрана, электронного курса или черновика без поездки. На очной встрече удобно обсудить материалы и учебные ситуации лично. Формат каждого слота указан в справочнике; перед очной встречей можно посмотреть погоду на этой странице. В статическом режиме ссылки на настоящие встречи не выдаются.</p></div>
+        </details>
+        <details class="card faq-item">
+          <summary>Сколько длится консультация?</summary>
+          <div class="faq-answer"><p>В текущем демонстрационном наборе каждая консультация рассчитана на 60 минут. Этого достаточно, чтобы сфокусироваться на одной задаче и наметить следующий шаг. Длительность и время демонстрационных слотов указываются в карточке консультации.</p></div>
+        </details>
+        <details class="card faq-item">
+          <summary>Как сформулировать свою потребность?</summary>
+          <div class="faq-answer"><p>Опишите, что хотите изменить и какой результат считаете полезным: например, «собрать рубрику для проектной работы» или «сделать навигацию курса понятнее». Для компаса достаточно выбрать готовый сценарий. Не включайте в описание имена, оценки или другие персональные данные студентов.</p></div>
+        </details>
+        <details class="card faq-item">
+          <summary>Можно ли отменить или изменить запись?</summary>
+          <div class="faq-answer"><p>В целевом сценарии проекта отмена будет доступна в разделе «Мои записи», а освободившееся место вернётся в слот. На ветке главной страницы создание и отмена записей ещё не реализованы, поэтому переходы из компаса не создают обязательств и ничего не нужно отменять.</p></div>
+        </details>
+        <details class="card faq-item">
+          <summary>Какие персональные данные нужны?</summary>
+          <div class="faq-answer"><p>Для компаса, поиска по FAQ и погоды персональные данные не нужны. Эти функции не запрашивают имя, почту или геолокацию устройства. Не вносите настоящие личные сведения в учебный проект. Состав и обработка полей будущей формы записи должны быть описаны отдельно до её реализации.</p></div>
+        </details>
+        <details class="card faq-item">
+          <summary>Что означает учебный демо-режим?</summary>
+          <div class="faq-answer"><p>Справочник, консультанты, аудитории и слоты вымышлены, а страница не является официальным сервисом ИИТА СПбГУПТД. Данные загружаются из статического seed-файла без обращения к учебным системам университета. Погода — единственный внешний сетевой запрос этой главной.</p></div>
+        </details>
+        <details class="card faq-item">
+          <summary>Как компас подбирает рекомендации?</summary>
+          <div class="faq-answer"><p>Каждый из шести сценариев заранее связан с одной темой и двумя характерными консультациями из seed. После выбора JavaScript загружает справочник и показывает актуальные названия и описания по ID. Это понятное правило, а не анализ личности или отправка текста в ИИ.</p></div>
+        </details>
+        <details class="card faq-item">
+          <summary>Что подготовить к методической встрече?</summary>
+          <div class="faq-answer"><p>Возьмите один конкретный пример: план занятия, структуру модуля, задание без лишних сведений об обучающихся или черновик статьи. Заранее запишите желаемый результат и главное затруднение. Для будущей реальной записи потребуются отдельные инструкции организатора; демонстрационный сайт их не заменяет.</p></div>
+        </details>
+      </div>
+      <div class="card empty-state faq-empty" data-faq-empty hidden>
+        <h3>По вашему запросу ничего не найдено</h3>
+        <p>Попробуйте более короткое слово или очистите поиск, чтобы снова увидеть все вопросы.</p>
+        <button class="button button-secondary" type="button" data-faq-clear>Очистить поиск</button>
+      </div>
     </section>
   </main>
 
