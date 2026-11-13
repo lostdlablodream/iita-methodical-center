@@ -30,6 +30,7 @@ const NEED_TAG_LABELS = Object.freeze({
 });
 const FIELD_ORDER = Object.freeze(["slotId", "displayName", "instituteId", "need", "needTags", "demoConfirmed"]);
 export const PENDING_BOOKING_SESSION_KEY = "iita.consultations.pending-booking.v1";
+export const AVAILABILITY_REFRESH_WARNING = "Доступность обновится после перезагрузки";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function cleanString(value) {
@@ -90,6 +91,39 @@ export function resolveBookingSelection(catalog, consultationId, slotId = "") {
     };
   }
   return { status: "ok", consultation: selectedConsultation, slot: selectedSlot };
+}
+
+export async function refreshCatalogAfterCreate(repository, consultationId, slotId) {
+  const catalog = await repository.getCatalog({});
+  const resolution = resolveBookingSelection(catalog, consultationId, slotId);
+  if (resolution.status !== "ok") {
+    throw new RepositoryError(
+      ERROR_CODES.INVALID_RESPONSE,
+      "После создания записи не удалось восстановить консультацию и слот из актуального каталога.",
+    );
+  }
+  return { catalog, resolution, slot: resolution.slot };
+}
+
+export async function createBookingAndRefresh(repository, draft, { idempotencyKey }) {
+  const booking = await repository.createBooking(draft, { idempotencyKey });
+  if (![BOOKING_STATUS.ACTIVE, BOOKING_STATUS.CANCELLED].includes(booking.status)) {
+    throw new RepositoryError(ERROR_CODES.INVALID_RESPONSE, "Repository вернул неизвестный статус записи.");
+  }
+
+  let refreshed = null;
+  let refreshError = null;
+  try {
+    refreshed = await refreshCatalogAfterCreate(repository, draft.consultationId, draft.slotId);
+  } catch (error) {
+    refreshError = error;
+  }
+  return {
+    booking,
+    refreshed,
+    refreshError,
+    availabilityWarning: refreshError ? AVAILABILITY_REFRESH_WARNING : "",
+  };
 }
 
 export function getBookingSlotAvailability(slot, now = new Date()) {
@@ -396,6 +430,7 @@ export function initializeBooking(root = document) {
     confirmation: null,
     cancelledBooking: null,
     createdLookupMissing: false,
+    availabilityStale: false,
     operation: restoredPendingOperation,
     restoredPending: Boolean(restoredPendingOperation),
     pending: false,
@@ -568,7 +603,9 @@ export function initializeBooking(root = document) {
         createSummaryRow("Место", summarySlot.location),
       );
       if (slot) {
-        list.append(createSummaryRow("Свободно", formatCapacity(getBookingSlotAvailability(slot).remainingCount)));
+        list.append(state.availabilityStale
+          ? createSummaryRow("Доступность", AVAILABILITY_REFRESH_WARNING)
+          : createSummaryRow("Свободно", formatCapacity(getBookingSlotAvailability(slot).remainingCount)));
       }
     } else {
       list.append(createSummaryRow("Время", "Выберите доступный слот"));
@@ -600,6 +637,17 @@ export function initializeBooking(root = document) {
     instituteSelect.value = state.catalog?.institutes.some((institute) => institute.id === selected)
       ? selected
       : DEFAULT_INSTITUTE_ID;
+  }
+
+  function applyCatalogAfterCreate({ catalog, resolution }) {
+    state.catalog = catalog;
+    state.consultationId = resolution.consultation.id;
+    state.consultation = resolution.consultation;
+    state.selectedSlotId = resolution.slot.id;
+    populateInstitutes();
+    renderSelectionDetails();
+    renderResolutionError(resolution.status);
+    state.availabilityStale = false;
   }
 
   function renderSelectionDetails() {
@@ -681,12 +729,16 @@ export function initializeBooking(root = document) {
         createElement("strong", { text: formatSlotRange(slot.startsAt, slot.endsAt) }),
         createElement("span", { text: `${getFormatLabel(slot.mode)} · ${slot.location}` }),
         createElement("span", {
-          className: !availability.isAvailable && restoredReplaySlot ? "slot-replay-note" : "slot-availability",
-          text: availability.isAvailable
-            ? `Свободно: ${formatCapacity(availability.remainingCount)}`
-            : restoredReplaySlot
-              ? "Повтор незавершённой записи; доступность проверит repository"
-              : `Недоступно: ${availability.reason.toLocaleLowerCase()}`,
+          className: state.availabilityStale || (!availability.isAvailable && restoredReplaySlot)
+            ? "slot-replay-note"
+            : "slot-availability",
+          text: state.availabilityStale
+            ? AVAILABILITY_REFRESH_WARNING
+            : availability.isAvailable
+              ? `Свободно: ${formatCapacity(availability.remainingCount)}`
+              : restoredReplaySlot
+                ? "Повтор незавершённой записи; доступность проверит repository"
+                : `Недоступно: ${availability.reason.toLocaleLowerCase()}`,
         }),
       );
       const label = createElement("label", {
@@ -970,7 +1022,7 @@ export function initializeBooking(root = document) {
       return;
     }
     state.operation = operationResult.operation;
-    const restoredReplay = isRestoredPendingReplay(state.operation, validation.draft);
+    const restoredRetry = isRestoredPendingReplay(state.operation, validation.draft);
     const pendingSaved = savePendingBookingOperation(state.operation, validation.draft);
     const operationKey = state.operation.key;
     state.pending = true;
@@ -978,45 +1030,17 @@ export function initializeBooking(root = document) {
     updateControls();
     renderFeedback({
       kind: "info",
-      title: restoredReplay ? "Повторяем незавершённую запись…" : "Создаём демонстрационную запись…",
+      title: restoredRetry ? "Повторяем незавершённую запись…" : "Создаём демонстрационную запись…",
       messages: [pendingSaved
         ? "UUID и канонический черновик сохранены в sessionStorage этой вкладки. После обновления введите прежние значения: автозаполнение намеренно не выполняется."
         : "Не удалось сохранить операцию в sessionStorage. Не обновляйте страницу до ответа; повтор без обновления использует тот же UUID."],
     });
 
+    let outcome;
     try {
-      const booking = await runtime.repository.createBooking(validation.draft, {
+      outcome = await createBookingAndRefresh(runtime.repository, validation.draft, {
         idempotencyKey: operationKey,
       });
-      if (![BOOKING_STATUS.ACTIVE, BOOKING_STATUS.CANCELLED].includes(booking.status)) {
-        throw new RepositoryError(ERROR_CODES.INVALID_RESPONSE, "Repository вернул неизвестный статус записи.");
-      }
-      state.pending = false;
-      discardPendingOperation();
-      if (booking.status === BOOKING_STATUS.ACTIVE && !restoredReplay) {
-        const bookedSlot = selectedSlot();
-        if (bookedSlot) {
-          const availability = getBookingSlotAvailability(bookedSlot);
-          bookedSlot.remainingCount = Math.max(0, availability.remainingCount - 1);
-          if (Number.isInteger(bookedSlot.reservedCount)) {
-            bookedSlot.reservedCount += 1;
-          }
-          if (bookedSlot.remainingCount === 0) {
-            bookedSlot.isOpen = false;
-          }
-        }
-      }
-      state.confirmation = booking.status === BOOKING_STATUS.ACTIVE ? booking : null;
-      state.cancelledBooking = booking.status === BOOKING_STATUS.CANCELLED ? booking : null;
-      state.createdId = booking.id;
-      state.createdLookupMissing = false;
-      hideFeedback();
-      updateUrl();
-      updateControls();
-      renderConfirmation();
-      renderSummary();
-      renderSlotExtras();
-      confirmation.focus({ preventScroll: false });
     } catch (error) {
       state.pending = false;
       if (shouldDiscardPendingOperation(error)) {
@@ -1025,7 +1049,34 @@ export function initializeBooking(root = document) {
       updateControls();
       renderSubmissionError(error, { pendingSaved });
       renderSummary();
+      return;
     }
+
+    const { booking } = outcome;
+    state.pending = false;
+    discardPendingOperation();
+    state.confirmation = booking.status === BOOKING_STATUS.ACTIVE ? booking : null;
+    state.cancelledBooking = booking.status === BOOKING_STATUS.CANCELLED ? booking : null;
+    state.createdId = booking.id;
+    state.createdLookupMissing = false;
+    state.availabilityStale = Boolean(outcome.refreshError);
+    hideFeedback();
+    updateUrl();
+    if (outcome.refreshed) {
+      applyCatalogAfterCreate(outcome.refreshed);
+    }
+    updateControls();
+    renderConfirmation();
+    renderSummary();
+    renderSlotExtras();
+    if (outcome.availabilityWarning) {
+      renderFeedback({
+        kind: "info",
+        title: "Запись подтверждена; актуальная доступность не получена",
+        messages: [outcome.availabilityWarning],
+      });
+    }
+    confirmation.focus({ preventScroll: false });
   }
 
   function renderLoading() {
@@ -1110,6 +1161,7 @@ export function initializeBooking(root = document) {
         return;
       }
       state.catalog = catalog;
+      state.availabilityStale = false;
       populateInstitutes();
       const resolution = resolveBookingSelection(catalog, state.consultationId, state.selectedSlotId);
       state.consultation = resolution.consultation;
