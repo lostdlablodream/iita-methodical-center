@@ -1,0 +1,47 @@
+# SQLite and other local databases
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+
+# Runtime data
+runtime/
+data/runtime/
+var/
+tmp/
+temp/
+*.pid
+*.log
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local task and verification artifacts
+.artifacts/
+artifacts/
+coverage/
+playwright-report/

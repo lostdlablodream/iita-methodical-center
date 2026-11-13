@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f4f6fb">
+  <meta name="description" content="Каталог демонстрационных методических консультаций для преподавателей ИИТА СПбГУПТД.">
+  <title>Каталог консультаций — Методика</title>
+  <link rel="stylesheet" href="./assets/css/common.css">
+  <script type="module" src="./assets/js/components.js"></script>
+</head>
+<body data-page="catalog">
+  <a class="skip-link" href="#main-content">Перейти к содержанию</a>
+
+  <header class="site-header" data-site-header>
+    <div class="container header-inner">
+      <a class="brand" href="./index.html" aria-label="Методика — главная">
+        <span class="brand-mark" aria-hidden="true">М</span>
+        <span class="brand-copy">
+          <span class="brand-name">Методика</span>
+          <span class="brand-subtitle">ИИТА СПбГУПТД</span>
+        </span>
+      </a>
+      <nav class="site-nav" id="site-navigation" aria-label="Основная навигация" data-site-nav>
+        <a href="./index.html" data-page-link="home">Главная</a>
+        <a href="./catalog.html" data-page-link="catalog">Каталог</a>
+        <a href="./booking.html" data-page-link="booking">Оформление</a>
+        <a href="./orders.html" data-page-link="orders">Мои записи</a>
+      </nav>
+      <span class="badge badge-mode" data-mode-badge>Учебный демо</span>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-navigation" data-nav-toggle>
+        <span class="nav-toggle-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>Меню</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="page-main" id="main-content" tabindex="-1">
+    <section class="page-intro container">
+      <div>
+        <p class="eyebrow">Выбор направления и времени</p>
+        <h1>Каталог консультаций</h1>
+        <p class="page-lead">Двенадцать учебных консультаций по шести направлениям. В следующих этапах здесь появятся поиск, фильтры и переход к выбранному слоту.</p>
+      </div>
+      <span class="badge badge-neutral">Заготовка страницы</span>
+    </section>
+
+    <div class="container">
+      <div class="alert alert-info" role="status">
+        <strong>Сейчас доступен общий каркас.</strong> Данные подготовлены в <code>data/seed.json</code>; интерактивная загрузка и фильтрация не реализованы на этом этапе.
+      </div>
+    </div>
+
+    <section class="section container" aria-labelledby="filters-title">
+      <div class="section-heading compact">
+        <div>
+          <p class="eyebrow">Параметры поиска</p>
+          <h2 id="filters-title">Фильтры каталога</h2>
+        </div>
+      </div>
+      <form class="filter-panel card" id="catalog-filters" data-catalog-filters aria-describedby="filters-note">
+        <fieldset disabled>
+          <legend class="visually-hidden">Будущие фильтры консультаций</legend>
+          <div class="field search-field">
+            <label for="catalog-search">Поиск по названию или описанию</label>
+            <input id="catalog-search" name="query" type="search" placeholder="Например, обратная связь" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="catalog-topic">Тема</label>
+            <select id="catalog-topic" name="topicId">
+              <option value="">Все темы</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="catalog-format">Формат</label>
+            <select id="catalog-format" name="format">
+              <option value="">Любой формат</option>
+              <option value="online">Онлайн</option>
+              <option value="offline">Очно</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="catalog-institute">Институт</label>
+            <select id="catalog-institute" name="instituteId">
+              <option value="iita">ИИТА</option>
+            </select>
+          </div>
+        </fieldset>
+        <p class="form-note" id="filters-note">Поля показаны для согласования структуры интерфейса и будут включены вместе с логикой каталога.</p>
+      </form>
+    </section>
+
+    <section class="section container" aria-labelledby="results-title">
+      <div class="section-heading compact">
+        <div>
+          <p class="eyebrow">Демонстрационный справочник</p>
+          <h2 id="results-title">Доступные консультации</h2>
+        </div>
+        <output class="text-muted" id="catalog-count" data-catalog-count aria-live="polite">12 позиций в seed</output>
+      </div>
+      <div class="alert alert-error" id="catalog-error" data-catalog-error role="alert" hidden>
+        Не удалось загрузить справочник. Здесь появится сообщение и действие повторной загрузки.
+      </div>
+      <div class="card-grid card-grid-three" id="catalog-results" data-catalog-results aria-live="polite" aria-busy="false"></div>
+      <div class="empty-state card" id="catalog-empty" data-catalog-empty hidden>
+        <h3>Подходящих консультаций не найдено</h3>
+        <p>Измените запрос или сбросьте фильтры, когда эти действия будут подключены.</p>
+      </div>
+      <div class="empty-state card" id="catalog-scaffold-note">
+        <span class="badge badge-accent">Готово к наполнению</span>
+        <h3>Карточки появятся из общего источника данных</h3>
+        <p>Каждая карточка покажет тему, аудиторию, демонстрационного консультанта, ближайшие слоты, формат и остаток мест. Выбор передаст идентификаторы консультации и слота на страницу оформления.</p>
+        <a class="button button-secondary" href="./booking.html">Открыть заготовку оформления</a>
+      </div>
+    </section>
+
+    <section class="section section-muted" aria-labelledby="choice-title">
+      <div class="container split-panel">
+        <div>
+          <p class="eyebrow">Перед записью</p>
+          <h2 id="choice-title">Как выбрать подходящую встречу</h2>
+        </div>
+        <ol class="compact-list">
+          <li>Сформулируйте один конкретный вопрос по своему курсу.</li>
+          <li>Проверьте описание и целевую аудиторию консультации.</li>
+          <li>Выберите онлайн или очный формат и удобную дату.</li>
+          <li>Учитывайте вместимость слота: в части демонстрационных слотов доступно только одно место.</li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer" data-site-footer>
+    <div class="container footer-grid">
+      <div>
+        <a class="footer-brand" href="./index.html">Методика</a>
+        <p>Методические консультации для преподавателей ИИТА СПбГУПТД.</p>
+      </div>
+      <div>
+        <h2 class="footer-heading">Сервис</h2>
+        <nav class="footer-nav" aria-label="Навигация в подвале">
+          <a href="./index.html">Главная</a>
+          <a href="./catalog.html">Каталог</a>
+          <a href="./booking.html">Оформление</a>
+          <a href="./orders.html">Мои записи</a>
+        </nav>
+      </div>
+      <div>
+        <h2 class="footer-heading">Демонстрационный режим</h2>
+        <p>Справочник, консультанты и слоты учебные. Сервис не является официальным каналом записи.</p>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>Командный учебный проект · 2026</p>
+      <a href="#main-content">Вернуться к содержанию</a>
+    </div>
+  </footer>
+</body>
+</html>

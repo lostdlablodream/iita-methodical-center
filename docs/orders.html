@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f4f6fb">
+  <meta name="description" content="Заготовка страницы личных записей на методические консультации ИИТА СПбГУПТД.">
+  <title>Мои записи — Методика</title>
+  <link rel="stylesheet" href="./assets/css/common.css">
+  <script type="module" src="./assets/js/components.js"></script>
+</head>
+<body data-page="orders">
+  <a class="skip-link" href="#main-content">Перейти к содержанию</a>
+
+  <header class="site-header" data-site-header>
+    <div class="container header-inner">
+      <a class="brand" href="./index.html" aria-label="Методика — главная">
+        <span class="brand-mark" aria-hidden="true">М</span>
+        <span class="brand-copy">
+          <span class="brand-name">Методика</span>
+          <span class="brand-subtitle">ИИТА СПбГУПТД</span>
+        </span>
+      </a>
+      <nav class="site-nav" id="site-navigation" aria-label="Основная навигация" data-site-nav>
+        <a href="./index.html" data-page-link="home">Главная</a>
+        <a href="./catalog.html" data-page-link="catalog">Каталог</a>
+        <a href="./booking.html" data-page-link="booking">Оформление</a>
+        <a href="./orders.html" data-page-link="orders">Мои записи</a>
+      </nav>
+      <span class="badge badge-mode" data-mode-badge>Учебный демо</span>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-navigation" data-nav-toggle>
+        <span class="nav-toggle-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>Меню</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="page-main" id="main-content" tabindex="-1">
+    <section class="page-intro container">
+      <div>
+        <p class="eyebrow">Личный результат</p>
+        <h1>Мои записи</h1>
+        <p class="page-lead">На этой странице появятся созданные записи, их состояние и отмена. Текущая версия содержит только общую оболочку и контейнеры для будущей интеграции.</p>
+      </div>
+      <a class="button button-primary" href="./catalog.html">Найти консультацию</a>
+    </section>
+
+    <div class="container">
+      <div class="alert alert-warning" role="note">
+        <strong>Локальный демонстрационный контур.</strong> В будущем записи этого браузера будут использовать единый ключ <code>iita.consultations.state.v1</code>. Сейчас чтение, сохранение и отмена не реализованы.
+      </div>
+    </div>
+
+    <section class="section container" aria-labelledby="orders-title">
+      <div class="section-heading compact">
+        <div>
+          <p class="eyebrow">План консультаций</p>
+          <h2 id="orders-title">Предстоящие и завершённые записи</h2>
+        </div>
+        <output class="text-muted" id="orders-count" data-orders-count aria-live="polite">Данные ещё не загружены</output>
+      </div>
+
+      <div class="order-toolbar card" data-orders-toolbar>
+        <div class="field">
+          <label for="orders-status">Статус записей</label>
+          <select id="orders-status" name="status" disabled>
+            <option value="all">Все записи</option>
+            <option value="active">Активные</option>
+            <option value="cancelled">Отменённые</option>
+          </select>
+        </div>
+        <p class="form-note">Фильтр будет включён вместе с загрузкой записей.</p>
+      </div>
+
+      <div class="alert alert-error" id="orders-error" data-orders-error role="alert" hidden>
+        Не удалось получить записи. Здесь появятся причина ошибки и кнопка повторной попытки.
+      </div>
+      <div class="orders-list" id="orders-list" data-orders-list aria-live="polite" aria-busy="false"></div>
+      <div class="empty-state card" id="orders-empty" data-orders-empty>
+        <span class="badge badge-neutral">Нет локальных данных</span>
+        <h3>Записей пока нет</h3>
+        <p>После реализации сквозного пути выбранная консультация сохранится здесь с датой, временем, форматом, местом проведения, запросом и статусом.</p>
+        <a class="button button-secondary" href="./catalog.html">Открыть каталог</a>
+      </div>
+      <div class="card order-card order-card-template" id="order-card-contract" data-order-card-contract>
+        <div>
+          <span class="badge badge-neutral">Структура будущей карточки</span>
+          <h3>Название консультации из общего справочника</h3>
+          <p>Дата и время Europe/Moscow · формат · место · демонстрационный консультант</p>
+          <p class="text-muted">Методический запрос и выбранные потребности будут показаны без HTML-вставки пользовательского текста.</p>
+        </div>
+        <div class="order-actions" aria-label="Планируемые действия">
+          <button class="button button-secondary" type="button" disabled>Подробнее</button>
+          <button class="button button-danger" type="button" disabled>Отменить запись</button>
+        </div>
+      </div>
+      <div id="orders-cancel-feedback" data-orders-cancel-feedback aria-live="polite"></div>
+    </section>
+
+    <section class="section section-muted" aria-labelledby="storage-title">
+      <div class="container split-panel">
+        <div>
+          <p class="eyebrow">Прозрачное хранение</p>
+          <h2 id="storage-title">Что важно знать о записях</h2>
+        </div>
+        <ul class="compact-list">
+          <li>Статический сайт не сможет синхронизировать записи между устройствами.</li>
+          <li>Очистка данных браузера удалит локальную демонстрационную историю.</li>
+          <li>Серверный режим будет использовать токен владельца и его хеш на стороне SQLite.</li>
+          <li>Отмена должна освобождать место и не создавать отрицательную вместимость.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer" data-site-footer>
+    <div class="container footer-grid">
+      <div>
+        <a class="footer-brand" href="./index.html">Методика</a>
+        <p>Методические консультации для преподавателей ИИТА СПбГУПТД.</p>
+      </div>
+      <div>
+        <h2 class="footer-heading">Сервис</h2>
+        <nav class="footer-nav" aria-label="Навигация в подвале">
+          <a href="./index.html">Главная</a>
+          <a href="./catalog.html">Каталог</a>
+          <a href="./booking.html">Оформление</a>
+          <a href="./orders.html">Мои записи</a>
+        </nav>
+      </div>
+      <div>
+        <h2 class="footer-heading">Демонстрационный режим</h2>
+        <p>Справочник, консультанты и слоты учебные. Сервис не является официальным каналом записи.</p>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>Командный учебный проект · 2026</p>
+      <a href="#main-content">Вернуться к содержанию</a>
+    </div>
+  </footer>
+</body>
+</html>
