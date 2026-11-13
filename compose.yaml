@@ -1,0 +1,23 @@
+services:
+  app:
+    build: .
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8080
+      APP_DB_PATH: /data/iita.db
+    ports:
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8080}:8080"
+    volumes:
+      - iita-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    stop_grace_period: 15s
+
+volumes:
+  iita-data:
