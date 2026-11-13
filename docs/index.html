@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <meta name="theme-color" content="#f4f6fb">
+  <meta name="theme-color" content="#f5f8fa">
   <meta name="description" content="Методика — учебный сервис подбора методических консультаций для преподавателей ИИТА СПбГУПТД.">
   <title>Методика — методические консультации ИИТА</title>
   <link rel="stylesheet" href="./assets/css/common.css">
@@ -68,11 +68,12 @@
     </section>
 
     <div class="container home-mode">
-      <div class="alert alert-info" role="note">
-        <strong>Учебный статический режим.</strong> Компас, поиск по FAQ и прогноз погоды работают на этой странице, а рекомендации строятся по демонстрационным данным. Оформление записи на этой ветке ещё не реализовано: переходы в каталог сохраняют выбранную тему и консультацию, но не создают запись.
+      <div class="alert alert-info" role="status" data-repository-alert>
+        <strong>Определяем режим хранения…</strong>
+        <p>После проверки здесь появятся инструкции для локального режима или общего демонстрационного API. Источники записей не смешиваются.</p>
       </div>
       <noscript>
-        <p class="alert alert-warning">Для компаса, поиска и погоды нужен JavaScript. Вопросы и ответы ниже доступны и без него.</p>
+        <p class="alert alert-warning">Для компаса, аналитики, поиска и погоды нужен JavaScript. Вопросы и ответы ниже доступны и без него.</p>
       </noscript>
     </div>
 
@@ -184,8 +185,8 @@
         <ol class="steps-list">
           <li class="card"><span class="step-index">1</span><h3>Определите запрос</h3><p>Выберите сценарий в компасе или сразу откройте одно из шести направлений.</p></li>
           <li class="card"><span class="step-index">2</span><h3>Изучите подборку</h3><p>Сравните название, краткое описание и длительность предложенных консультаций.</p></li>
-          <li class="card"><span class="step-index">3</span><h3>Перейдите в каталог</h3><p>Ссылка передаст topicId и consultationId. На этой ветке переход ещё не оформляет запись.</p></li>
-          <li class="card"><span class="step-index">4</span><h3>Подготовьте вопрос</h3><p>Зафиксируйте желаемый результат, а перед очной встречей посмотрите текущую погоду.</p></li>
+          <li class="card"><span class="step-index">3</span><h3>Оформите демонстрационную запись</h3><p>В каталоге выберите слот, укажите институт и обязательную потребность, затем подтвердите запись.</p></li>
+          <li class="card"><span class="step-index">4</span><h3>Проверьте «Мои записи»</h3><p>Откройте детали записи или отмените её. Локальные записи остаются в браузере, серверные — в общем демо API.</p></li>
         </ol>
       </div>
     </section>
@@ -195,7 +196,7 @@
         <div>
           <p class="eyebrow">Потребности преподавателей</p>
           <h2 id="needs-title">Запросы помогают планировать встречи</h2>
-          <p>В следующих этапах при оформлении предполагается собирать только методические теги и краткое описание задачи. Обобщённые потребности помогут планировать темы встреч без публикации личных сведений. Сейчас форма сбора и отправки потребностей отсутствует.</p>
+          <p>При оформлении обязательно опишите методическую потребность: от 10 до 1000 символов. Дополнительные теги помогают сгруппировать задачи. На главной отображаются только количества по темам, институтам, форматам и тегам — текст потребности и имя участника в аналитику не попадают.</p>
           <div class="tag-list" aria-label="Примеры запросов">
             <span class="tag">Настроить курс</span>
             <span class="tag">Пересобрать оценивание</span>
@@ -205,14 +206,95 @@
           </div>
         </div>
         <aside class="privacy-note" aria-labelledby="privacy-title">
-          <h3 id="privacy-title">Приватность в статическом режиме</h3>
+          <h3 id="privacy-title">Приватность и аналитика</h3>
           <ul class="privacy-list">
-            <li>Выбор сценария и поиск по FAQ остаются в текущей странице и не сохраняются после перезагрузки.</li>
-            <li>Для рекомендаций загружается только общий seed-файл; текст запроса не требуется.</li>
+            <li>Локальная аналитика учитывает только записи этого браузера; серверная — агрегаты общего демо API. Источники не объединяются.</li>
+            <li>Диаграммы и CSV содержат только агрегированные количества, без текста потребности, имён и идентификаторов записей.</li>
             <li>В Open-Meteo отправляются лишь фиксированные координаты Санкт-Петербурга и параметры прогноза.</li>
             <li>Не вводите настоящие персональные данные, сведения о студентах, пароли или секреты.</li>
           </ul>
         </aside>
+      </div>
+    </section>
+
+    <section class="section container analytics-section" id="analytics" aria-labelledby="analytics-title" data-analytics>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Методические запросы в цифрах</p>
+          <h2 id="analytics-title">Пульс потребностей</h2>
+          <p class="section-lead">Смотрите, какие темы и форматы выбирают участники, и выгружайте только агрегированные показатели без личных данных.</p>
+        </div>
+      </div>
+      <div class="card analytics-panel" data-analytics-panel aria-busy="true">
+        <div class="analytics-toolbar">
+          <div class="field analytics-topic-field">
+            <label for="analytics-topic">Тема аналитики</label>
+            <select id="analytics-topic" data-analytics-topic disabled>
+              <option value="">Все темы</option>
+            </select>
+          </div>
+          <div class="analytics-actions">
+            <button class="button button-secondary" type="button" data-analytics-refresh disabled>Обновить</button>
+            <button class="button button-primary" type="button" data-analytics-export disabled>Скачать CSV</button>
+          </div>
+        </div>
+        <div class="analytics-meta">
+          <span class="badge badge-neutral" data-analytics-scope>Определяем источник…</span>
+          <p class="text-muted text-small" data-analytics-generated></p>
+        </div>
+        <p class="analytics-scope-note" data-analytics-scope-note>После подключения repository здесь будет точно указан источник агрегатов.</p>
+
+        <div class="analytics-status" data-analytics-status aria-live="polite" aria-atomic="true">
+          <span class="loading-indicator" aria-hidden="true"></span>
+          <p>Определяем режим хранения и источник аналитики…</p>
+        </div>
+
+        <div data-analytics-results hidden>
+          <div class="analytics-kpis" data-analytics-kpis></div>
+          <div class="analytics-charts">
+            <section class="analytics-chart" aria-labelledby="analytics-topics-title">
+              <h3 id="analytics-topics-title">Активные записи по темам</h3>
+              <p class="analytics-chart-note">Все шесть тем; процент от текущего totalActive.</p>
+              <ul class="analytics-bars" data-analytics-topic-bars></ul>
+            </section>
+            <section class="analytics-chart" aria-labelledby="analytics-institutes-title">
+              <h3 id="analytics-institutes-title">Институты с наибольшим числом записей</h3>
+              <p class="analytics-chart-note">До пяти институтов с ненулевым числом активных записей.</p>
+              <ul class="analytics-bars" data-analytics-institute-bars></ul>
+            </section>
+            <section class="analytics-chart analytics-chart-wide" aria-labelledby="analytics-tags-title">
+              <h3 id="analytics-tags-title">Дополнительные потребности</h3>
+              <p class="analytics-chart-note">Процент от активных записей. Одна запись может содержать несколько тегов.</p>
+              <ul class="analytics-bars analytics-bars-tags" data-analytics-tag-bars></ul>
+            </section>
+          </div>
+        </div>
+
+        <div class="analytics-empty" data-analytics-empty hidden>
+          <h3>В этом срезе пока нет активных записей</h3>
+          <p>Это не ошибка: нулевые значения не заменяются демонстрационными числами. Выберите консультацию, чтобы сформировать реальный агрегат выбранного режима.</p>
+          <a class="button button-primary" href="./catalog.html" data-analytics-empty-link>Перейти в каталог</a>
+        </div>
+
+        <details class="analytics-table-details" data-analytics-table-details hidden>
+          <summary data-analytics-table-summary>Показать все институты, включая нулевые значения</summary>
+          <div class="analytics-table-scroll" tabindex="0" role="region" aria-label="Таблица активных записей по всем институтам">
+            <table class="analytics-table">
+              <caption data-analytics-table-caption>Все институты справочника, включая нулевые значения.</caption>
+              <thead>
+                <tr><th scope="col">ID</th><th scope="col">Институт</th><th scope="col">Активные записи</th></tr>
+              </thead>
+              <tbody data-analytics-institute-rows></tbody>
+            </table>
+          </div>
+        </details>
+
+        <div class="analytics-error" data-analytics-error hidden>
+          <h3>Не удалось загрузить аналитику</h3>
+          <p data-analytics-error-message></p>
+          <p>Компас, каталог, погода и FAQ продолжают работать независимо.</p>
+          <button class="button button-secondary" type="button" data-analytics-retry>Повторить</button>
+        </div>
       </div>
     </section>
 
@@ -251,7 +333,7 @@
       <div class="faq-list" id="faq-list" data-faq-list>
         <details class="card faq-item">
           <summary>Чем отличаются онлайн и очная консультации?</summary>
-          <div class="faq-answer"><p>Онлайн-встреча подходит для разбора экрана, электронного курса или черновика без поездки. На очной встрече удобно обсудить материалы и учебные ситуации лично. Формат каждого слота указан в справочнике; перед очной встречей можно посмотреть погоду на этой странице. В статическом режиме ссылки на настоящие встречи не выдаются.</p></div>
+          <div class="faq-answer"><p>Онлайн-встреча подходит для разбора экрана, электронного курса или черновика без поездки. На очной встрече удобно обсудить материалы и учебные ситуации лично. Формат каждого слота указан в справочнике; перед очной встречей можно посмотреть погоду на этой странице. В учебном режиме встречи и расписание демонстрационные.</p></div>
         </details>
         <details class="card faq-item">
           <summary>Сколько длится консультация?</summary>
@@ -263,15 +345,15 @@
         </details>
         <details class="card faq-item">
           <summary>Можно ли отменить или изменить запись?</summary>
-          <div class="faq-answer"><p>В целевом сценарии проекта отмена будет доступна в разделе «Мои записи», а освободившееся место вернётся в слот. На ветке главной страницы создание и отмена записей ещё не реализованы, поэтому переходы из компаса не создают обязательств и ничего не нужно отменять.</p></div>
+          <div class="faq-answer"><p>Откройте «Мои записи», найдите активную запись и подтвердите отмену: освободившееся место вернётся в слот. Локальная запись изменится только в этом браузере, серверная — в общем демо API. Аналитика обновится после загрузки или следующего запроса к тому же источнику.</p></div>
         </details>
         <details class="card faq-item">
           <summary>Какие персональные данные нужны?</summary>
-          <div class="faq-answer"><p>Для компаса, поиска по FAQ и погоды персональные данные не нужны. Эти функции не запрашивают имя, почту или геолокацию устройства. Не вносите настоящие личные сведения в учебный проект. Состав и обработка полей будущей формы записи должны быть описаны отдельно до её реализации.</p></div>
+          <div class="faq-answer"><p>Для компаса, поиска по FAQ и погоды персональные данные не нужны. При оформлении используются демонстрационное имя, институт и обязательное описание потребности; настоящие личные сведения вводить не следует. В аналитике и CSV выводятся только количества, без имени, текста потребности и идентификатора записи.</p></div>
         </details>
         <details class="card faq-item">
           <summary>Что означает учебный демо-режим?</summary>
-          <div class="faq-answer"><p>Справочник, консультанты, аудитории и слоты вымышлены, а страница не является официальным сервисом ИИТА СПбГУПТД. Данные загружаются из статического seed-файла без обращения к учебным системам университета. Погода — единственный внешний сетевой запрос этой главной.</p></div>
+          <div class="faq-answer"><p>Справочник, консультанты, аудитории и слоты вымышлены, а страница не является официальным сервисом ИИТА СПбГУПТД. В local-режиме записи остаются в браузере, в server-режиме используется общий учебный API. Плашка после hero показывает выбранный режим; источники и их аналитика не смешиваются.</p></div>
         </details>
         <details class="card faq-item">
           <summary>Как компас подбирает рекомендации?</summary>

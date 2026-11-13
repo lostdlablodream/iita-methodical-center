@@ -3,6 +3,8 @@ import { clearElement, createElement } from "../components.js";
 import { getConsultation, getFormatLabel, getTopic } from "../domain.js";
 import { formatDuration, pluralize } from "../format.js";
 import { renderWeatherWidget } from "../weather.js";
+import { initializeAnalytics } from "./analytics.js";
+import { createRepositoryRuntime } from "./runtime.js";
 
 const SCENARIOS = Object.freeze([
   {
@@ -196,7 +198,7 @@ function renderRecommendation(result, scenario, seed) {
     list,
     createElement("p", {
       className: "recommendation-note",
-      text: "Ссылки сохраняют выбор в адресе каталога. Запись на этой ветке не создаётся.",
+      text: "Перейдите в каталог, выберите слот и оформите демонстрационную запись в доступном режиме repository.",
     }),
   );
 }
@@ -349,6 +351,16 @@ function initializeHome() {
   if (weatherContainer) {
     renderWeatherWidget(weatherContainer);
   }
+
+  const analytics = initializeAnalytics(document);
+  const repositoryRuntime = createRepositoryRuntime({
+    root: document,
+    onStateChange(state) {
+      analytics.onRepositoryStateChange(state);
+    },
+  });
+  analytics.setRuntime(repositoryRuntime);
+  void repositoryRuntime.connect();
 }
 
 if (document.readyState === "loading") {
