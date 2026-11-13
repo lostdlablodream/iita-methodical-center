@@ -112,12 +112,16 @@ function validateBooking(booking) {
     "mode",
     "location",
     "consultantLabel",
-    "requesterInstituteId",
+    "instituteId",
     "idempotencyKey",
+    "idempotencyHash",
   ];
 
   return UUID_PATTERN.test(booking.id)
     && requiredStrings.every((field) => isNonEmptyString(booking[field]))
+    && typeof booking.displayName === "string"
+    && booking.displayName.length >= 2
+    && booking.displayName.length <= 80
     && isDateString(booking.startsAt)
     && isDateString(booking.endsAt)
     && Number.isInteger(booking.durationMinutes)
@@ -129,7 +133,8 @@ function validateBooking(booking) {
     && booking.needTags.every(isNonEmptyString)
     && Object.values(BOOKING_STATUS).includes(booking.status)
     && isDateString(booking.createdAt)
-    && (booking.cancelledAt === null || isDateString(booking.cancelledAt));
+    && (booking.cancelledAt === null || isDateString(booking.cancelledAt))
+    && (booking.cancelIdempotencyKey === null || isNonEmptyString(booking.cancelIdempotencyKey));
 }
 
 export function validateState(state) {
@@ -216,16 +221,28 @@ export function getStorageCapabilities(options = {}) {
   const hasLocks = Boolean(locks && typeof locks.request === "function");
   return Object.freeze({
     crossTabLock: hasLocks,
-    atomicity: hasLocks ? "navigator.locks" : "best-effort",
+    mutationsAvailable: hasLocks,
+    atomicity: hasLocks ? "navigator.locks" : "unavailable",
   });
 }
 
-export async function withStorageLock(callback, options = {}) {
+export function assertStorageMutationsAvailable(options = {}) {
   const locks = resolveLocks(options.locks);
   if (!locks || typeof locks.request !== "function") {
-    return callback();
+    throw new RepositoryError(
+      ERROR_CODES.STORAGE_UNAVAILABLE,
+      "Web Locks API недоступен: локальная mutation не выполнена, данные не изменены.",
+      {
+        fields: { locks: "Для локальной записи требуется navigator.locks." },
+        retryable: false,
+      },
+    );
   }
+  return locks;
+}
 
+export async function withStorageLock(callback, options = {}) {
+  const locks = assertStorageMutationsAvailable(options);
   try {
     return await locks.request(STORAGE_LOCK_NAME, { mode: "exclusive" }, callback);
   } catch (error) {

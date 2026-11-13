@@ -4,13 +4,16 @@ import {
   CONSULTATION_FORMAT,
   NEED_TAGS,
   findConsultationSlot,
+  getConsultation,
   getInstitute,
+  getSlot,
   getTopic,
   isFutureSlot,
   isInstituteAllowed,
 } from "./domain.js";
 import { ERROR_CODES, RepositoryError, createValidationError } from "./errors.js";
 import {
+  assertStorageMutationsAvailable,
   copyJson,
   createBookingId,
   getStorageCapabilities,
@@ -22,6 +25,8 @@ export const LOCAL_MODE = "local";
 export const LOCAL_ANALYTICS_SCOPE = "local-browser";
 export const NEED_MIN_LENGTH = 10;
 export const NEED_MAX_LENGTH = 1000;
+export const DISPLAY_NAME_MIN_LENGTH = 2;
+export const DISPLAY_NAME_MAX_LENGTH = 80;
 export const IDEMPOTENCY_KEY_MAX_LENGTH = 200;
 export const ALLOWED_NEED_TAGS = Object.freeze(Object.values(NEED_TAGS));
 
@@ -50,10 +55,7 @@ export function normalizeNeedTags(value) {
   if (value === undefined) {
     return [];
   }
-  if (!Array.isArray(value)) {
-    return null;
-  }
-  if (value.some((tag) => typeof tag !== "string")) {
+  if (!Array.isArray(value) || value.some((tag) => typeof tag !== "string")) {
     return null;
   }
   return [...new Set(value.map((tag) => tag.trim()))].sort();
@@ -70,40 +72,63 @@ export function normalizeIdempotencyKey(value) {
   return key;
 }
 
-export function normalizeBookingInput(input) {
-  const source = isObject(input) ? input : {};
-  const normalized = {
-    slotId: normalizeIdentifier(source.slotId),
-    requesterInstituteId: normalizeIdentifier(source.requesterInstituteId),
-    need: normalizeNeed(source.need),
-    needTags: normalizeNeedTags(source.needTags),
-  };
-  const fields = {};
+export function normalizeCatalogFilters(filters = {}) {
+  if (!isObject(filters)) {
+    throw createValidationError({ filters: "Передайте объект фильтров." }, "Некорректные фильтры каталога.");
+  }
 
-  if (!normalized.slotId) {
-    fields.slotId = "Выберите слот консультации.";
+  const normalized = {};
+  const fields = {};
+  for (const name of ["query", "topicId", "instituteId", "mode", "from", "to"]) {
+    const value = filters[name];
+    if (value === undefined || value === null) {
+      continue;
+    }
+    if (typeof value !== "string") {
+      fields[name] = "Значение фильтра должно быть строкой.";
+      continue;
+    }
+    const trimmed = value.trim();
+    if (trimmed) {
+      normalized[name] = trimmed;
+    }
   }
-  if (!normalized.requesterInstituteId) {
-    fields.requesterInstituteId = "Выберите институт.";
+
+  if (normalized.mode && !Object.values(CONSULTATION_FORMAT).includes(normalized.mode)) {
+    fields.mode = "Допустимые форматы: online, offline.";
   }
-  if (normalized.need.length < NEED_MIN_LENGTH || normalized.need.length > NEED_MAX_LENGTH) {
-    fields.need = `Опишите потребность: от ${NEED_MIN_LENGTH} до ${NEED_MAX_LENGTH} символов после trim.`;
+  for (const name of ["from", "to"]) {
+    if (normalized[name] && Number.isNaN(new Date(normalized[name]).getTime())) {
+      fields[name] = "Укажите корректную дату RFC3339.";
+    }
   }
-  if (normalized.needTags === null) {
-    fields.needTags = "Теги потребности должны быть массивом строк.";
-  } else if (
-    normalized.needTags.some((tag) => !ALLOWED_NEED_TAGS.includes(tag))
-  ) {
-    fields.needTags = `Допустимые теги: ${ALLOWED_NEED_TAGS.join(", ")}.`;
+  if (normalized.from && normalized.to
+    && new Date(normalized.from).getTime() > new Date(normalized.to).getTime()) {
+    fields.to = "Конец диапазона должен быть не раньше его начала.";
   }
 
   if (Object.keys(fields).length > 0) {
-    throw createValidationError(fields);
+    throw createValidationError(fields, "Некорректные фильтры каталога.");
   }
   return normalized;
 }
 
-function normalizeListStatus(status) {
+export function normalizeAnalyticsFilters(filters = {}) {
+  const source = typeof filters === "string" ? { topicId: filters } : filters;
+  if (!isObject(source)) {
+    throw createValidationError({ filters: "Передайте объект фильтров." }, "Некорректные фильтры аналитики.");
+  }
+  if (source.topicId === undefined || source.topicId === null) {
+    return {};
+  }
+  const topicId = normalizeIdentifier(source.topicId);
+  if (!topicId) {
+    throw createValidationError({ topicId: "Укажите ID темы." }, "Некорректный ID темы.");
+  }
+  return { topicId };
+}
+
+export function normalizeBookingStatus(status) {
   if (status === undefined || status === null) {
     return null;
   }
@@ -117,11 +142,82 @@ function normalizeListStatus(status) {
   return normalized;
 }
 
-function samePayload(booking, payload) {
-  return booking.slotId === payload.slotId
-    && booking.requesterInstituteId === payload.requesterInstituteId
-    && booking.need === payload.need
-    && JSON.stringify(booking.needTags) === JSON.stringify(payload.needTags);
+export function normalizeBookingInput(input) {
+  const source = isObject(input) ? input : {};
+  const normalized = {
+    consultationId: normalizeIdentifier(source.consultationId),
+    slotId: normalizeIdentifier(source.slotId),
+    instituteId: normalizeIdentifier(source.instituteId ?? source.requesterInstituteId),
+    displayName: normalizeIdentifier(source.displayName),
+    need: normalizeNeed(source.need),
+    needTags: normalizeNeedTags(source.needTags),
+  };
+  const fields = {};
+
+  if (!normalized.consultationId) {
+    fields.consultationId = "Выберите консультацию.";
+  }
+  if (!normalized.slotId) {
+    fields.slotId = "Выберите слот консультации.";
+  }
+  if (!normalized.instituteId) {
+    fields.instituteId = "Выберите институт.";
+  }
+  if (normalized.displayName.length < DISPLAY_NAME_MIN_LENGTH
+    || normalized.displayName.length > DISPLAY_NAME_MAX_LENGTH) {
+    fields.displayName = `Укажите имя длиной от ${DISPLAY_NAME_MIN_LENGTH} до ${DISPLAY_NAME_MAX_LENGTH} символов после trim.`;
+  }
+  if (normalized.need.length < NEED_MIN_LENGTH || normalized.need.length > NEED_MAX_LENGTH) {
+    fields.need = `Опишите потребность: от ${NEED_MIN_LENGTH} до ${NEED_MAX_LENGTH} символов после trim.`;
+  }
+  if (normalized.needTags === null) {
+    fields.needTags = "Теги потребности должны быть массивом строк.";
+  } else if (normalized.needTags.some((tag) => !ALLOWED_NEED_TAGS.includes(tag))) {
+    fields.needTags = `Допустимые теги: ${ALLOWED_NEED_TAGS.join(", ")}.`;
+  }
+
+  if (Object.keys(fields).length > 0) {
+    throw createValidationError(fields);
+  }
+  return normalized;
+}
+
+export function canonicalizeBookingPayload(payload) {
+  return JSON.stringify({
+    consultationId: payload.consultationId,
+    slotId: payload.slotId,
+    instituteId: payload.instituteId,
+    displayName: payload.displayName,
+    need: payload.need,
+    needTags: payload.needTags,
+  });
+}
+
+export async function createIdempotencyHash(payload, cryptoImpl = globalThis.crypto) {
+  const canonical = canonicalizeBookingPayload(payload);
+  if (cryptoImpl?.subtle && typeof TextEncoder === "function") {
+    try {
+      const digest = await cryptoImpl.subtle.digest("SHA-256", new TextEncoder().encode(canonical));
+      const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+      return `sha256:${hex}`;
+    } catch {
+      return `json:${canonical}`;
+    }
+  }
+  return `json:${canonical}`;
+}
+
+function assertOwner(state, ownerToken) {
+  if (ownerToken === undefined || ownerToken === null) {
+    return state.ownerToken;
+  }
+  const normalized = normalizeIdentifier(ownerToken);
+  if (!normalized || normalized !== state.ownerToken) {
+    throw new RepositoryError(ERROR_CODES.OWNER_MISMATCH, "Owner token не соответствует локальному владельцу.", {
+      fields: { ownerToken: "Проверьте токен владельца записей." },
+    });
+  }
+  return state.ownerToken;
 }
 
 function activeCount(bookings, slotId) {
@@ -148,7 +244,13 @@ function validateSeed(seed) {
       && normalizeIdentifier(consultation.id)
       && normalizeIdentifier(consultation.topicId)
       && normalizeIdentifier(consultation.title)
+      && typeof consultation.summary === "string"
+      && typeof consultation.description === "string"
+      && normalizeIdentifier(consultation.consultantLabel)
+      && Array.isArray(consultation.tags)
+      && consultation.tags.every((tag) => typeof tag === "string")
       && Array.isArray(consultation.instituteIds)
+      && consultation.instituteIds.every((id) => typeof id === "string")
       && Number.isInteger(consultation.durationMinutes)
       && consultation.durationMinutes > 0
       && Array.isArray(consultation.slots)
@@ -170,6 +272,52 @@ function validateSeed(seed) {
   return seed;
 }
 
+export function filterCatalog(seed, filters = {}) {
+  const normalized = normalizeCatalogFilters(filters);
+  const catalog = copyJson(seed);
+  const query = normalized.query?.toLocaleLowerCase();
+  const hasSlotFilters = Boolean(normalized.mode || normalized.from || normalized.to);
+  const fromTime = normalized.from ? new Date(normalized.from).getTime() : null;
+  const toTime = normalized.to ? new Date(normalized.to).getTime() : null;
+
+  catalog.consultations = catalog.consultations
+    .filter((consultation) => {
+      if (normalized.topicId && consultation.topicId !== normalized.topicId) {
+        return false;
+      }
+      if (normalized.instituteId && !consultation.instituteIds.includes(normalized.instituteId)) {
+        return false;
+      }
+      if (query) {
+        const searchable = [
+          consultation.title,
+          consultation.summary,
+          consultation.description,
+          ...consultation.tags,
+        ].join("\n").toLocaleLowerCase();
+        if (!searchable.includes(query)) {
+          return false;
+        }
+      }
+      return true;
+    })
+    .map((consultation) => {
+      if (!hasSlotFilters) {
+        return consultation;
+      }
+      consultation.slots = consultation.slots.filter((slot) => {
+        const startsAt = new Date(slot.startsAt).getTime();
+        return (!normalized.mode || slot.mode === normalized.mode)
+          && (fromTime === null || startsAt >= fromTime)
+          && (toTime === null || startsAt <= toTime);
+      });
+      return consultation;
+    })
+    .filter((consultation) => !hasSlotFilters || consultation.slots.length > 0);
+
+  return catalog;
+}
+
 export function decorateCatalog(seed, bookings, now) {
   const referenceDate = resolveNow(now);
   const catalog = copyJson(seed);
@@ -187,21 +335,20 @@ export function decorateCatalog(seed, bookings, now) {
 }
 
 function requireTopic(seed, topicId) {
-  if (topicId === undefined || topicId === null) {
+  if (!topicId) {
     return null;
   }
-  const normalized = normalizeIdentifier(topicId);
-  if (!normalized || !getTopic(seed, normalized)) {
+  if (!getTopic(seed, topicId)) {
     throw createValidationError(
       { topicId: "Выберите тему из справочника." },
       "Неизвестная тема аналитики.",
     );
   }
-  return normalized;
+  return topicId;
 }
 
-export function buildLocalAnalytics(seed, bookings, topicId, now) {
-  const selectedTopicId = requireTopic(seed, topicId);
+export function buildLocalAnalytics(seed, bookings, filters = {}, now) {
+  const selectedTopicId = requireTopic(seed, normalizeAnalyticsFilters(filters).topicId);
   const active = bookings.filter((booking) => booking.status === BOOKING_STATUS.ACTIVE
     && (selectedTopicId === null || booking.topicId === selectedTopicId));
 
@@ -211,8 +358,8 @@ export function buildLocalAnalytics(seed, bookings, topicId, now) {
   const byNeedTag = Object.fromEntries(ALLOWED_NEED_TAGS.map((tag) => [tag, 0]));
 
   for (const booking of active) {
-    if (Object.hasOwn(byInstitute, booking.requesterInstituteId)) {
-      byInstitute[booking.requesterInstituteId] += 1;
+    if (Object.hasOwn(byInstitute, booking.instituteId)) {
+      byInstitute[booking.instituteId] += 1;
     }
     if (Object.hasOwn(byTopic, booking.topicId)) {
       byTopic[booking.topicId] += 1;
@@ -303,25 +450,30 @@ export function createLocalRepository(options = {}) {
     return seedPromise;
   }
 
-  async function getCatalog() {
+  async function getCatalog(filters = {}) {
+    const normalizedFilters = normalizeCatalogFilters(filters);
     const [seed, state] = await Promise.all([
       loadSeed(),
       Promise.resolve().then(() => readState(storageOptions)),
     ]);
-    return decorateCatalog(seed, state.local.bookings, now);
+    return decorateCatalog(filterCatalog(seed, normalizedFilters), state.local.bookings, now);
   }
 
-  async function createBooking(input, idempotencyKey) {
-    const payload = normalizeBookingInput(input);
-    const normalizedKey = normalizeIdempotencyKey(idempotencyKey);
+  async function createBooking(draft, mutationOptions = {}) {
+    assertStorageMutationsAvailable(storageOptions);
+    const payload = normalizeBookingInput(draft);
+    const normalizedKey = normalizeIdempotencyKey(mutationOptions?.idempotencyKey);
+    const idempotencyHash = await createIdempotencyHash(payload, options.crypto);
+    const canonicalPayload = canonicalizeBookingPayload(payload);
     const seed = await loadSeed();
 
     return updateState((state) => {
+      assertOwner(state, mutationOptions?.ownerToken);
       const existing = state.local.bookings.find(
         (booking) => booking.idempotencyKey === normalizedKey,
       );
       if (existing) {
-        if (samePayload(existing, payload)) {
+        if (canonicalizeBookingPayload(existing) === canonicalPayload) {
           return { result: existing, changed: false };
         }
         throw new RepositoryError(
@@ -331,22 +483,29 @@ export function createLocalRepository(options = {}) {
         );
       }
 
-      const match = findConsultationSlot(seed, payload.slotId);
-      if (!match) {
+      const consultation = getConsultation(seed, payload.consultationId);
+      if (!consultation) {
+        throw new RepositoryError(ERROR_CODES.NOT_FOUND, "Выбранная консультация не найдена.", {
+          fields: { consultationId: "Выберите консультацию из актуального каталога." },
+        });
+      }
+      const slot = getSlot(consultation, payload.slotId);
+      if (!slot) {
+        if (findConsultationSlot(seed, payload.slotId)) {
+          throw createValidationError(
+            { slotId: "Слот принадлежит другой консультации." },
+            "consultationId и slotId не образуют допустимую пару.",
+          );
+        }
         throw new RepositoryError(ERROR_CODES.NOT_FOUND, "Выбранный слот не найден.", {
           fields: { slotId: "Выберите слот из актуального каталога." },
         });
       }
-      const { consultation, slot } = match;
-      if (!getInstitute(seed, payload.requesterInstituteId)) {
-        throw createValidationError({
-          requesterInstituteId: "Выбранный институт отсутствует в справочнике.",
-        });
+      if (!getInstitute(seed, payload.instituteId)) {
+        throw createValidationError({ instituteId: "Выбранный институт отсутствует в справочнике." });
       }
-      if (!isInstituteAllowed(consultation, payload.requesterInstituteId)) {
-        throw createValidationError({
-          requesterInstituteId: "Эта консультация недоступна для выбранного института.",
-        });
+      if (!isInstituteAllowed(consultation, payload.instituteId)) {
+        throw createValidationError({ instituteId: "Эта консультация недоступна для выбранного института." });
       }
 
       const currentDate = resolveNow(now);
@@ -356,15 +515,13 @@ export function createLocalRepository(options = {}) {
           "Выбранный слот недоступен для новой записи.",
         );
       }
-
       if (activeCount(state.local.bookings, payload.slotId) >= slot.capacity) {
         throw new RepositoryError(ERROR_CODES.SLOT_FULL, "На выбранный слот не осталось мест.", {
           fields: { slotId: "Выберите другой слот." },
         });
       }
       const duplicate = state.local.bookings.some(
-        (booking) => booking.slotId === payload.slotId
-          && booking.status === BOOKING_STATUS.ACTIVE,
+        (booking) => booking.slotId === payload.slotId && booking.status === BOOKING_STATUS.ACTIVE,
       );
       if (duplicate) {
         throw new RepositoryError(
@@ -376,8 +533,12 @@ export function createLocalRepository(options = {}) {
 
       const booking = {
         id: createBookingId(options.crypto),
-        slotId: slot.id,
         consultationId: consultation.id,
+        slotId: slot.id,
+        instituteId: payload.instituteId,
+        displayName: payload.displayName,
+        need: payload.need,
+        needTags: [...payload.needTags],
         title: consultation.title,
         topicId: consultation.topicId,
         startsAt: slot.startsAt,
@@ -386,22 +547,25 @@ export function createLocalRepository(options = {}) {
         location: slot.location,
         durationMinutes: consultation.durationMinutes,
         consultantLabel: consultation.consultantLabel,
-        requesterInstituteId: payload.requesterInstituteId,
-        need: payload.need,
-        needTags: [...payload.needTags],
         status: BOOKING_STATUS.ACTIVE,
         createdAt: currentDate.toISOString(),
         cancelledAt: null,
         idempotencyKey: normalizedKey,
+        idempotencyHash,
+        cancelIdempotencyKey: null,
       };
       state.local.bookings.push(booking);
       return { result: booking, changed: true };
     }, storageOptions);
   }
 
-  async function listBookings(status) {
-    const normalizedStatus = normalizeListStatus(status);
+  async function listBookings(listOptions = {}) {
+    if (!isObject(listOptions)) {
+      throw createValidationError({ options: "Передайте объект параметров." }, "Некорректные параметры списка.");
+    }
+    const normalizedStatus = normalizeBookingStatus(listOptions.status);
     const state = readState(storageOptions);
+    assertOwner(state, listOptions.ownerToken);
     return state.local.bookings
       .filter((booking) => normalizedStatus === null || booking.status === normalizedStatus)
       .sort((left, right) => left.startsAt.localeCompare(right.startsAt)
@@ -410,17 +574,21 @@ export function createLocalRepository(options = {}) {
       .map(copyJson);
   }
 
-  async function cancelBooking(id) {
-    const bookingId = normalizeIdentifier(id);
+  async function cancelBooking(cancelOptions = {}) {
+    assertStorageMutationsAvailable(storageOptions);
+    const source = isObject(cancelOptions) ? cancelOptions : {};
+    const bookingId = normalizeIdentifier(source.bookingId);
+    const normalizedKey = normalizeIdempotencyKey(source.idempotencyKey);
     if (!bookingId) {
-      throw createValidationError({ id: "Укажите ID записи." }, "Некорректный ID записи.");
+      throw createValidationError({ bookingId: "Укажите ID записи." }, "Некорректный ID записи.");
     }
 
     return updateState((state) => {
-      const booking = state.local.bookings.find(({ id: currentId }) => currentId === bookingId);
+      assertOwner(state, source.ownerToken);
+      const booking = state.local.bookings.find(({ id }) => id === bookingId);
       if (!booking) {
         throw new RepositoryError(ERROR_CODES.NOT_FOUND, "Запись не найдена.", {
-          fields: { id: "Обновите список записей." },
+          fields: { bookingId: "Обновите список записей." },
         });
       }
       if (booking.status === BOOKING_STATUS.CANCELLED) {
@@ -429,16 +597,18 @@ export function createLocalRepository(options = {}) {
 
       booking.status = BOOKING_STATUS.CANCELLED;
       booking.cancelledAt = resolveNow(now).toISOString();
+      booking.cancelIdempotencyKey = normalizedKey;
       return { result: booking, changed: true };
     }, storageOptions);
   }
 
-  async function getAnalytics(topicId) {
+  async function getAnalytics(filters = {}) {
+    const normalizedFilters = normalizeAnalyticsFilters(filters);
     const [seed, state] = await Promise.all([
       loadSeed(),
       Promise.resolve().then(() => readState(storageOptions)),
     ]);
-    return buildLocalAnalytics(seed, state.local.bookings, topicId, now);
+    return buildLocalAnalytics(seed, state.local.bookings, normalizedFilters, now);
   }
 
   const capabilities = getStorageCapabilities(storageOptions);
@@ -447,6 +617,7 @@ export function createLocalRepository(options = {}) {
     scope: LOCAL_ANALYTICS_SCOPE,
     atomicity: capabilities.atomicity,
     crossTabLock: capabilities.crossTabLock,
+    mutationsAvailable: capabilities.mutationsAvailable,
     getCatalog,
     listBookings,
     createBooking,

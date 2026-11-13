@@ -96,8 +96,7 @@ export async function detectRepositoryMode(options = {}) {
     health = await checkServerHealth(options);
   } catch (error) {
     if (error instanceof RepositoryError) {
-      if (error.status === 404 || error.status === 405
-        || (error.code === ERROR_CODES.INVALID_RESPONSE && error.isHtml)) {
+      if (error.status === 404 || error.status === 405) {
         return LOCAL_MODE;
       }
       if (error.code === ERROR_CODES.UPSTREAM_TIMEOUT) {
@@ -122,7 +121,7 @@ export async function detectRepositoryMode(options = {}) {
         {
           status: error.status,
           cause: error,
-          retryable: error.retryable,
+          retryable: error.retryable || error.status >= 500,
         },
       );
     }
