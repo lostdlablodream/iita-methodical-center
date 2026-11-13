@@ -45,6 +45,49 @@ const SCENARIOS = Object.freeze([
 
 let seedPromise = null;
 
+function validateSeed(seed) {
+  if (!Array.isArray(seed?.topics) || !Array.isArray(seed?.consultations)) {
+    throw new Error("Справочник имеет неподдерживаемый формат");
+  }
+
+  const topicIds = new Set();
+  const consultationIds = new Set();
+  seed.topics.forEach((topic) => {
+    if (typeof topic?.id !== "string" || !topic.id || topicIds.has(topic.id)) {
+      throw new Error("Темы справочника имеют некорректные или повторяющиеся ID");
+    }
+    topicIds.add(topic.id);
+  });
+  seed.consultations.forEach((consultation) => {
+    if (typeof consultation?.id !== "string" || !consultation.id || consultationIds.has(consultation.id)) {
+      throw new Error("Консультации имеют некорректные или повторяющиеся ID");
+    }
+    consultationIds.add(consultation.id);
+  });
+
+  SCENARIOS.forEach((scenario) => {
+    const topic = getTopic(seed, scenario.topicId);
+    if (!topic || typeof topic.name !== "string" || typeof topic.description !== "string") {
+      throw new Error(`Тема сценария ${scenario.id} отсутствует или заполнена некорректно`);
+    }
+
+    scenario.consultationIds.forEach((consultationId) => {
+      const consultation = getConsultation(seed, consultationId);
+      if (!consultation
+        || consultation.topicId !== scenario.topicId
+        || typeof consultation.title !== "string"
+        || typeof consultation.summary !== "string"
+        || !Number.isFinite(consultation.durationMinutes)
+        || !Array.isArray(consultation.slots)
+        || consultation.slots.some((slot) => !slot || typeof slot !== "object")) {
+        throw new Error(`Консультация ${consultationId} отсутствует или заполнена некорректно`);
+      }
+    });
+  });
+
+  return seed;
+}
+
 async function requestSeed() {
   const response = await fetch(SEED_URL, {
     headers: { Accept: "application/json" },
@@ -56,19 +99,18 @@ async function requestSeed() {
   }
 
   const seed = await response.json();
-  if (!Array.isArray(seed?.topics) || !Array.isArray(seed?.consultations)) {
-    throw new Error("Справочник имеет неподдерживаемый формат");
-  }
-
-  return seed;
+  return validateSeed(seed);
 }
 
 function loadSeed() {
   if (!seedPromise) {
-    seedPromise = requestSeed().catch((error) => {
-      seedPromise = null;
+    const cachedPromise = requestSeed().catch((error) => {
+      if (seedPromise === cachedPromise) {
+        seedPromise = null;
+      }
       throw error;
     });
+    seedPromise = cachedPromise;
   }
 
   return seedPromise;
@@ -161,18 +203,20 @@ function renderRecommendation(result, scenario, seed) {
 
 function renderCompassError(result) {
   const wrapper = createElement("div", { className: "compass-error" });
+  const retryButton = createElement("button", {
+    className: "button button-secondary",
+    text: "Повторить",
+    attributes: { type: "button", "data-compass-retry": "true" },
+  });
   wrapper.append(
     createElement("p", { className: "eyebrow", text: "Справочник недоступен" }),
     createElement("h3", { text: "Не удалось получить рекомендацию" }),
     createElement("p", { text: "Проверьте подключение и повторите загрузку. Остальные разделы главной продолжают работать." }),
-    createElement("button", {
-      className: "button button-secondary",
-      text: "Повторить",
-      attributes: { type: "button", "data-compass-retry": "true" },
-    }),
+    retryButton,
   );
   clearElement(result);
   result.append(wrapper);
+  return retryButton;
 }
 
 export function initializeCompass(root = document) {
@@ -185,8 +229,9 @@ export function initializeCompass(root = document) {
   const scenarioButtons = [...picker.querySelectorAll("[data-scenario]")];
   let selectedScenarioId = null;
   let requestNumber = 0;
+  result.setAttribute("tabindex", "-1");
 
-  const selectScenario = async (scenarioId) => {
+  const selectScenario = async (scenarioId, isRetry = false) => {
     const scenario = SCENARIOS.find(({ id }) => id === scenarioId);
     if (!scenario) {
       return;
@@ -194,10 +239,14 @@ export function initializeCompass(root = document) {
 
     selectedScenarioId = scenarioId;
     const currentRequest = ++requestNumber;
+    let focusTarget = null;
     scenarioButtons.forEach((button) => {
       button.setAttribute("aria-pressed", String(button.dataset.scenario === scenarioId));
     });
 
+    if (isRetry) {
+      result.focus({ preventScroll: true });
+    }
     result.setAttribute("aria-busy", "true");
     clearElement(result);
     result.append(createLoadingState());
@@ -208,13 +257,21 @@ export function initializeCompass(root = document) {
         return;
       }
       renderRecommendation(result, scenario, seed);
+      if (isRetry) {
+        focusTarget = result;
+      }
     } catch (error) {
       if (currentRequest === requestNumber) {
-        renderCompassError(result);
+        seedPromise = null;
+        const retryButton = renderCompassError(result);
+        if (isRetry) {
+          focusTarget = retryButton;
+        }
       }
     } finally {
       if (currentRequest === requestNumber) {
         result.setAttribute("aria-busy", "false");
+        focusTarget?.focus({ preventScroll: true });
       }
     }
   };
@@ -229,7 +286,7 @@ export function initializeCompass(root = document) {
   result.addEventListener("click", (event) => {
     const retry = event.target.closest("[data-compass-retry]");
     if (retry && selectedScenarioId) {
-      selectScenario(selectedScenarioId);
+      selectScenario(selectedScenarioId, true);
     }
   });
 }

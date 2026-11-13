@@ -143,6 +143,11 @@ function renderError(container, error, timeoutMs) {
   const isTimeout = error?.name === "AbortError" || error?.name === "TimeoutError";
   const seconds = Math.max(1, Math.round(timeoutMs / 1000));
   const wrapper = createElement("div", { className: "weather-error" });
+  const retryButton = createElement("button", {
+    className: "button button-secondary",
+    text: "Повторить",
+    attributes: { type: "button", "data-weather-retry": "true" },
+  });
   wrapper.append(
     createElement("p", { className: "eyebrow", text: "Прогноз недоступен" }),
     createElement("h3", { text: "Не удалось получить погоду" }),
@@ -151,11 +156,7 @@ function renderError(container, error, timeoutMs) {
         ? `Сервис не ответил за ${seconds} секунд. Проверьте соединение и повторите попытку.`
         : "Сервис Open-Meteo временно недоступен или вернул неподдерживаемый ответ. Повторите попытку чуть позже.",
     }),
-    createElement("button", {
-      className: "button button-secondary",
-      text: "Повторить",
-      attributes: { type: "button", "data-weather-retry": "true" },
-    }),
+    retryButton,
     createElement("p", {
       className: "weather-error-note",
       text: "Ошибка погоды не влияет на компас, ссылки и другие разделы страницы.",
@@ -163,6 +164,7 @@ function renderError(container, error, timeoutMs) {
   );
   clearElement(container);
   container.append(wrapper);
+  return retryButton;
 }
 
 function createWeatherFact(label, value) {
@@ -246,8 +248,12 @@ export function renderWeatherWidget(container, options = {}) {
   const config = { ...DEFAULT_OPTIONS, ...options };
   let requestNumber = 0;
 
-  const load = async () => {
+  const load = async (isRetry = false) => {
     const currentRequest = ++requestNumber;
+    let focusTarget = null;
+    if (isRetry) {
+      container.focus({ preventScroll: true });
+    }
     container.setAttribute("aria-busy", "true");
     renderLoading(container);
 
@@ -257,29 +263,37 @@ export function renderWeatherWidget(container, options = {}) {
         return null;
       }
       renderResult(container, weather, config.locationLabel);
+      if (isRetry) {
+        focusTarget = container;
+      }
       return weather;
     } catch (error) {
       if (currentRequest === requestNumber) {
-        renderError(container, error, config.timeoutMs);
+        const retryButton = renderError(container, error, config.timeoutMs);
+        if (isRetry) {
+          focusTarget = retryButton;
+        }
       }
       return null;
     } finally {
       if (currentRequest === requestNumber) {
         container.setAttribute("aria-busy", "false");
+        focusTarget?.focus({ preventScroll: true });
       }
     }
   };
 
-  const widget = { refresh: load };
+  const widget = { refresh: () => load(false) };
   mountedWidgets.set(container, widget);
   container.classList.add("weather-widget");
+  container.setAttribute("tabindex", "-1");
   container.setAttribute("aria-live", "polite");
   container.setAttribute("aria-atomic", "true");
   container.addEventListener("click", (event) => {
     if (event.target.closest("[data-weather-retry]")) {
-      load();
+      load(true);
     }
   });
-  load();
+  load(false);
   return widget;
 }
