@@ -317,6 +317,7 @@ export function initializeOrders(root = document) {
   const cancelOperations = new Map();
   let runtime;
   let requestNumber = 0;
+  let mutationEpoch = 0;
   let activeLoad = null;
   let refreshQueued = false;
   let highlightedBookingId = "";
@@ -574,6 +575,7 @@ export function initializeOrders(root = document) {
     }
 
     const currentRequest = ++requestNumber;
+    const loadEpoch = mutationEpoch;
     const keepCurrentView = background && state.loaded;
     renderLoading(keepCurrentView);
     const promise = (async () => {
@@ -582,7 +584,7 @@ export function initializeOrders(root = document) {
           repository.listBookings({}),
           repository.getCatalog({}),
         ]);
-        if (currentRequest !== requestNumber || repository !== runtime.repository) {
+        if (currentRequest !== requestNumber || loadEpoch !== mutationEpoch || repository !== runtime.repository) {
           return false;
         }
         if (!Array.isArray(bookings) || !catalog || !Array.isArray(catalog.institutes)) {
@@ -598,7 +600,7 @@ export function initializeOrders(root = document) {
         render();
         return true;
       } catch (error) {
-        if (currentRequest === requestNumber && repository === runtime.repository) {
+        if (currentRequest === requestNumber && loadEpoch === mutationEpoch && repository === runtime.repository) {
           state.loading = false;
           if (keepCurrentView) {
             elements.refreshing.hidden = true;
@@ -618,7 +620,7 @@ export function initializeOrders(root = document) {
       if (activeLoad === promise) {
         activeLoad = null;
       }
-      if (currentRequest === requestNumber) {
+      if (currentRequest === requestNumber && loadEpoch === mutationEpoch) {
         state.loading = false;
         elements.refreshing.hidden = true;
         updateControls();
@@ -710,6 +712,8 @@ export function initializeOrders(root = document) {
         showToast("Отмена подтверждена в прежнем режиме хранения. Текущий список не изменён.");
         return;
       }
+      mutationEpoch += 1;
+      requestNumber += 1;
       state.bookings = upsertBooking(state.bookings, outcome.booking);
       state.loaded = true;
       state.pendingCancelId = null;
@@ -834,6 +838,7 @@ export function initializeOrders(root = document) {
   runtime = createRepositoryRuntime({
     root,
     onStateChange(repositoryState) {
+      mutationEpoch += 1;
       requestNumber += 1;
       activeLoad = null;
       refreshQueued = false;
