@@ -1,322 +1,285 @@
 # Архитектура «Методики»
 
-> **Статус: проектный контракт, не отчёт о реализации.** Сейчас созданы статические HTML-заготовки, общие CSS/JS-модули, seed и документация. Repository, storage, рабочие личные страницы, REST API, SQLite, погодный адаптер, Docker и deploy описаны ниже как обязательства для следующих спринтов. Формулировки «должен» и «будет» не означают, что соответствующий код уже существует.
+Документ описывает фактическую реализацию на `main` после merged PR #1–#7. Это не проектный план: четыре страницы, оба repository adapter, Python/SQLite backend, Docker и GitHub Pages уже существуют. Итоговые статусы проверок находятся в [`CHANGELOG.md`](CHANGELOG.md).
 
-## 1. Цель и границы
+## 1. Назначение и границы
 
-Система должна помочь преподавателю ИИТА СПбГУПТД:
+«Методика» — учебный сервис записи преподавателей ИИТА СПбГУПТД на методические консультации и сбора обобщённых потребностей. Пользователь может найти консультацию, выбрать слот, оформить демонстрационную запись, увидеть её после обновления, отменить, повторно оформить и получить агрегированную аналитику.
 
-1. определить методическую потребность;
-2. найти консультацию и доступный слот;
-3. оформить запись без оплаты и аккаунта;
-4. вернуться к записи после обновления страницы;
-5. отменить её и освободить место;
-6. передать в аналитику только обобщённые темы и потребности.
+Справочник содержит 20 институтов, 6 тем, 12 консультаций и 31 слот. Официальное расписание, реальные аккаунты, оплата, роли администратора и обработка настоящих персональных данных не входят в систему. Название и SUTD-inspired палитра не превращают проект в официальный сайт университета; логотип и герб не копируются.
 
-Официальное расписание, реальные учётные записи, платежи, роли администратора и интеграция с внутренними системами в учебный объём не входят. Демонстрационные данные не должны выдаваться за официальные.
-
-## 2. Общая форма решения
-
-Планируется один frontend и сменный источник данных:
+## 2. Фактическая форма решения
 
 ```text
-HTML-страницы
+HTML/CSS в docs
       │
       ▼
-page modules ──► общие domain/format/components
-      │
+page modules в docs/assets/js/pages
+      │       ├── domain/format/components/config
+      │       ├── weather.js ───────────────► Open-Meteo напрямую из браузера
+      │       └── analytics-export.js / calendar.js
       ▼
-единый repository contract
-      ├──────────────┐
-      ▼              ▼
-local repository  server repository
-      │              │
-localStorage       REST v1 ──► Python stdlib ──► SQLite
-                                   │
-                                   └────► Open-Meteo
+repository.js: выбор local/server и общий badge
+      │
+      ├── repository.local.js ──► storage.js ──► один localStorage key
+      │
+      └── repository.server.js ──► REST ./api/v1
+                                      │
+                                      ▼
+                           backend/app.py + repository.py
+                                      │
+                                      ▼
+                           backend/db.py ──► SQLite
+
+Backend weather proxy существует отдельно в backend/repository.py
+и не входит в frontend repository contract.
 ```
 
-Режим должен выбираться явно и отображаться общим badge. Недопустим незаметный fallback с server на local после ошибки: пользователь мог бы принять несинхронизированную локальную запись за серверную.
+Frontend не требует npm, сборки, framework или CDN. Backend использует только Python stdlib и SQLite. Все внутренние ссылки и ресурсы относительные, что позволяет публиковать `docs` в подкаталоге GitHub Pages.
 
-### Уже зафиксированные правила каркаса
+## 3. Страницы и модули
 
-- Только HTML, CSS и vanilla JS ES modules; npm, React, сборка и CDN не добавляются.
-- Frontend находится в `docs`, страницы используют относительные ресурсы и ссылки.
-- `docs/assets/js/config.js` задаёт единственный ключ `iita.consultations.state.v1` и часовой пояс `Europe/Moscow`.
-- `docs/assets/js/format.js` форматирует RFC3339/UTC через `Intl.DateTimeFormat`.
-- `docs/assets/js/domain.js` содержит только общие предметные константы и чистые функции поиска в seed.
-- `docs/assets/js/components.js` инициализирует общий badge, активную навигацию и мобильное меню; вывод текста выполняется DOM-методами и `textContent`.
-- `docs/data/seed.json` является будущим общим источником и для браузерного каталога, и для импорта SQLite.
+| Страница | Фактические модули и ответственность |
+|---|---|
+| `index.html` | `pages/home.js`: компас, FAQ, weather и один `createRepositoryRuntime`; `pages/analytics.js`: KPI, диаграммы, таблица, фильтр и обновления; `pages/analytics-export.js`: CSV BOM и Blob download. |
+| `catalog.html` | `pages/catalog.js`: repository catalog, поиск, тема/институт/формат, active filters, пустой/ошибочный результат и переход с `consultationId`/`slotId`. |
+| `booking.html` | `pages/booking.js`: чтение query, validation, обязательный label «Какая потребность/проблема», pending create, idempotent submit, availability refresh и weather для слота. |
+| `orders.html` | `pages/orders.js`: list/cancel, история, rebook, native dialog, mutation epoch и ICS через `pages/calendar.js`. |
 
-## 3. Frontend и страницы
+Общие модули:
 
-| Страница | Будущая ответственность | Передаваемые данные |
-|---|---|---|
-| `index.html` | Представление направлений, сценарий и будущие рекомендации `home.js` | Тема или потребность в каталог |
-| `catalog.html` | Загрузка seed/API, поиск, фильтры, карточки и выбор слота | `consultationId`, `slotId` в query |
-| `booking.html` | Чтение выбора, проверка доступности, форма и создание записи | Объект booking через repository |
-| `orders.html` | Список собственных записей, состояния, подробности и отмена | `bookingId`, owner token |
+- `config.js` — `STORAGE_KEY`, `SEED_URL`, `API_PREFIX`, `Europe/Moscow` и timeout погоды.
+- `domain.js` — форматы, статусы, need tags и чистые предметные helpers.
+- `format.js` — дата/время и русские формы числительных через `Intl`.
+- `components.js` — безопасный DOM/`textContent`, badge, активная навигация и mobile menu.
+- `pages/runtime.js` — единый для страницы runtime подключения repository, mode badge/alert и явный force local.
+- `storage.js` — строгая схема local state, crypto random, read/write и Web Locks.
+- `errors.js` — `RepositoryError`, коды и нормализация ошибок для UI.
 
-Query-параметры должны читаться через `URLSearchParams`. Неизвестный или отсутствующий ID должен давать понятное состояние со ссылкой в каталог, а не исключение. Переходы внутри `docs` должны оставаться относительными, чтобы сайт работал при публикации в подкаталоге Pages.
-
-Предлагаемое дальнейшее разделение модулей:
-
-```text
-assets/js/
-├── config.js             # уже создан: общие константы
-├── format.js             # уже создан: дата/время и pluralization
-├── domain.js             # уже создан: чистые предметные функции
-├── components.js         # уже создан: общая оболочка и безопасный DOM
-├── repository.js         # план: контракт и выбор адаптера
-├── local-repository.js   # план: local mode
-├── server-repository.js  # план: REST mode
-├── storage.js            # план: единственный localStorage key и миграция
-├── weather.js            # план: состояния внешнего API
-├── home.js               # план Дмитрия
-├── catalog.js            # план Максима
-├── booking.js            # план Максима
-└── orders.js             # план Алексея
-```
-
-Перечисленные как «план» файлы намеренно не созданы в scaffold. Личные модули не должны дублировать seed, заводить собственный ключ состояния или изменять записи других страниц напрямую.
+Page modules отвечают за `loading / empty / result / error / retry`; repository не изменяет DOM. Пользовательские и API-строки выводятся через DOM/`textContent`, а не `innerHTML`.
 
 ## 4. Repository contract
 
-Контракт должен быть асинхронным для обоих режимов, чтобы переход local → server не менял page modules.
+Оба adapter возвращают объект с пятью асинхронными предметными методами:
 
 ```js
-// Проектная сигнатура, а не существующий код.
-const repository = {
-  getHealth(),
-  getCatalog(filters),
-  createBooking(draft, { ownerToken, idempotencyKey }),
-  listBookings({ ownerToken }),
-  cancelBooking({ bookingId, ownerToken, idempotencyKey }),
-  getAnalytics(filters),
-  getWeather(query),
-};
+repository.getCatalog(filters);
+repository.createBooking(draft, { idempotencyKey, ownerToken });
+repository.listBookings({ status, ownerToken });
+repository.cancelBooking({ bookingId, idempotencyKey, ownerToken });
+repository.getAnalytics({ topicId });
 ```
+
+`getHealth` и `getWeather` в этот contract **не входят**. Доступность сервера отдельно проверяет `checkServerHealth()` из `repository.server.js`; погоду браузер получает через `weather.js`.
 
 ### Входы и результаты
 
-- `getCatalog({ query, topicId, instituteId, mode, from, to })` возвращает справочники институтов и тем, консультации, слоты и остаток мест.
-- `createBooking` получает стабильные ID вместо копии названия; возвращает нормализованную запись и признак повторного ответа.
-- `listBookings` возвращает только записи владельца токена, отсортированные по началу слота.
-- `cancelBooking` возвращает отменённую запись; повторная отмена не должна повторно увеличивать остаток.
-- `getAnalytics` возвращает только агрегаты по темам, тегам потребностей и заполняемости слотов.
-- `getWeather` возвращает нормализованные значение, единицы, время наблюдения/прогноза и имя источника.
+- `getCatalog({ query, topicId, instituteId, mode, from, to })` возвращает `meta`, `institutes`, `topics` и `consultations`. В слотах есть `capacity`, `reservedCount`, `remainingCount`, `isOpen`, время, формат и место.
+- `createBooking` принимает `consultationId`, `slotId`, `instituteId`, `displayName`, `need`, `needTags`; возвращает booking DTO. Отдельный replay flag клиенту не добавляется. HTTP 200/201 остаётся транспортной деталью server adapter.
+- `listBookings` возвращает массив записей текущего владельца, опционально отфильтрованный по `status`, отсортированный по началу слота, созданию и ID.
+- `cancelBooking` возвращает booking DTO; повторная отмена не освобождает место повторно.
+- `getAnalytics` возвращает `scope`, `generatedAt`, `topicId`, `totalActive`, `byInstitute`, `byTopic`, `byFormat`, `byNeedTag`. Local scope — `local-browser`, server scope — `server`.
 
-Ошибки должны преобразовываться в общий объект:
+Ошибки приводятся к `RepositoryError` с `code`, `message`, `status`, `fields`/`fieldErrors`, `retryable`; transport metadata может включать `contentType` и `isHtml`. Используются коды:
 
 ```text
+VALIDATION_ERROR, NOT_FOUND, SLOT_FULL, DUPLICATE_BOOKING,
+OWNER_MISMATCH, IDEMPOTENCY_CONFLICT, STORAGE_UNAVAILABLE,
+STORAGE_CORRUPT, UPSTREAM_UNAVAILABLE, UPSTREAM_TIMEOUT,
+INVALID_RESPONSE, DETECTION_FAILED
+```
+
+## 5. Выбор режима и sessionStorage
+
+`repository.js` выбирает режим через health API и сохраняет выбор в sessionStorage:
+
+- `iita.consultations.repository-mode.v1` — `local` или `server` для текущей вкладки;
+- `iita.consultations.pending-booking.v1` — отдельный ключ `pages/booking.js` для незавершённого создания.
+
+HTTP 404/405 health означает статический local-режим. Timeout, сетевая ошибка или неподдерживаемый health не вызывают скрытый local fallback: UI показывает ошибку, retry и явную кнопку local. Runtime обновляет badge и поясняет, где хранятся записи.
+
+Pending create имеет `{version: 1, key, canonical, draft, consultationId, slotId}`. При восстановлении canonical вычисляется заново и сравнивается с draft. UUID и черновик остаются в текущей вкладке при timeout/неопределённом ответе; успех, окончательная validation-ошибка или явный новый черновик очищает операцию по правилам `booking.js`. Поля формы после F5 намеренно не подставляются автоматически.
+
+## 6. Local mode
+
+### Единственный state
+
+`storage.js` читает и пишет только `iita.consultations.state.v1`:
+
+```js
 {
-  code: VALIDATION_ERROR | NOT_FOUND | SLOT_FULL | OWNER_MISMATCH |
-        IDEMPOTENCY_CONFLICT | STORAGE_UNAVAILABLE | UPSTREAM_UNAVAILABLE,
-  message: понятное сообщение без внутренних секретов,
-  retryable: boolean,
-  fieldErrors?: { [field]: string }
+  schemaVersion: 1,
+  ownerToken, // 64 hex символа = 256 бит
+  local: {
+    revision,
+    bookings
+  }
 }
 ```
 
-Page module отвечает за `loading / empty / result / error / retry`; repository не должен напрямую менять DOM.
+При чтении проверяются версия, owner token, revision и каждая запись. Повреждённые или несовместимые данные приводят к `STORAGE_CORRUPT`; автоматической миграции и параллельных ключей заказов нет. Недоступность хранилища — `STORAGE_UNAVAILABLE`.
 
-## 5. Local mode и единый localStorage key
+Local mutations требуют Web Locks API. Без `navigator.locks` создание и отмена не выполняются и возвращают `STORAGE_UNAVAILABLE`; чтение и аналитика остаются отдельными операциями. `revision` увеличивается только при фактическом изменении.
 
-Будущий `storage.js` должен читать и записывать только `iita.consultations.state.v1`. Внутри одного JSON-документа планируются:
+### Booking DTO
+
+Local booking хранит не только IDs и пользовательские поля, но и snapshot отображаемых данных:
 
 ```text
-{
-  version: 1,
-  ownerToken: случайный локальный идентификатор владельца,
-  bookings: [],
-  idempotency: [],
-  updatedAt: UTC RFC3339
-}
+id, consultationId, slotId, instituteId,
+displayName, need, needTags,
+title, topicId, startsAt, endsAt, mode, location,
+durationMinutes, consultantLabel,
+status, createdAt, cancelledAt,
+idempotencyKey, idempotencyHash,
+cancelIdempotencyKey, cancelIdempotencyKeys
 ```
 
-Правила local mode:
+Owner token создаётся через `crypto.getRandomValues`; booking ID использует `crypto.randomUUID`, с fallback на UUID из случайных байтов. Канонический draft связывается с idempotency key и SHA-256/доступным fallback хеша. Повтор с тем же содержимым возвращает существующую запись, другой payload с тем же ключом отклоняется.
 
-- проверять `version`, типы и границы значений при чтении; повреждённые данные не выполнять как код;
-- использовать `crypto.getRandomValues` для owner token и `crypto.randomUUID` для ID, если браузер их поддерживает;
-- не дублировать весь каталог в состоянии записи: сохранять `consultationId`, `slotId` и пользовательский запрос, а отображаемые данные получать из общего справочника;
-- повторный submit с тем же черновиком отправлять с прежним `idempotencyKey`;
-- перед созданием проверять активные локальные записи на тот же слот и вычислять остаток по `capacity`;
-- при отмене менять статус один раз и не допускать отрицательного остатка;
-- оборачивать недоступность или переполнение localStorage в `STORAGE_UNAVAILABLE`;
-- миграции версии выполнять в том же ключе, не разводя `v2`, `orders`, `draft` и другие параллельные хранилища.
+Занятость вычисляется из активных записей, а не хранится отдельным счётчиком. Отмена переводит `active → cancelled`, сохраняет аудит cancel keys и не меняет занятость повторно. Snapshot позволяет показывать историю независимо от последующего чтения каталога.
 
-Local mode не обеспечивает глобальную занятость, синхронизацию браузеров и защиту от очистки данных. Это ограничение должно быть видно в интерфейсе.
+LocalStorage привязан к браузеру/origin и не даёт глобальной вместимости. Raw owner token необходим list/cancel, но при XSS или доступе к профилю браузера может быть прочитан; это одна из причин запрета реальных данных в демо.
 
-## 6. Server mode и REST v1
+## 7. Server mode и REST v1
 
-Будущий server repository должен собирать URL относительно `./api/v1`; ни промышленный origin, ни секреты в frontend не добавляются. Логический контракт маршрутов:
+Frontend использует относительный `./api/v1`; production origin в коде и документации не фиксируется. Backend одновременно отдаёт `docs` и API.
 
-| Метод и относительный маршрут | Назначение | Основные ответы |
+| Метод и маршрут | Реализация | Успех и основные статусы |
 |---|---|---|
-| `GET ./api/v1/health` | Готовность API и доступность SQLite | `200`, `503` |
-| `GET ./api/v1/catalog` | Справочники и слоты с фильтрами `query`, `topicId`, `instituteId`, `mode`, `from`, `to` | `200`, `400`, `503` |
-| `POST ./api/v1/bookings` | Создание записи по `consultationId` и `slotId` | `201`, повтор `200`, `400`, `401`, `404`, `409`, `422` |
-| `GET ./api/v1/bookings` | Записи текущего owner token | `200`, `401`, `503` |
-| `POST ./api/v1/bookings/{bookingId}/cancel` | Идемпотентная отмена собственной записи | `200`, `401`, `403`, `404`, `409` |
-| `GET ./api/v1/analytics` | Агрегированные темы, need tags и занятость без персональных данных | `200`, `400`, `503` |
-| `GET ./api/v1/weather` | Нормализованный прокси к Open-Meteo для выбранной демонстрационной площадки | `200`, `400`, `503`, `504` |
+| `GET /api/v1/health` | `SELECT 1` и маркер server/API version | `200`; ошибки запроса/БД `400`, `405`, `503`. |
+| `GET /api/v1/catalog` | Фильтры query/topicId/instituteId/mode/from/to и остаток мест | `200`; `400`, `405`, `422`, `503`. |
+| `GET /api/v1/bookings` | Записи по HMAC владельца, optional `status` | `200`; `400`, `401`, `405`, `422`, `503`. |
+| `POST /api/v1/bookings` | Bearer + Idempotency-Key, создание и replay | `201`, replay `200`; `400`, `401`, `404`, `405`, `409`, `413`, `415`, `422`, `503`. |
+| `POST /api/v1/bookings/{uuid}/cancel` | Bearer + Idempotency-Key, пустое тело | `200`; `400`, `401`, `404`, `405`, `409`, `422`, `503`. |
+| `GET /api/v1/analytics` | Агрегаты, optional `topicId` | `200`; `400`, `405`, `422`, `503`. |
+| `GET /api/v1/weather` | Отдельный current proxy к Open-Meteo | `200`; `400`, `405`, `422`, `503`, `504`. |
 
-### Создание записи
+Неподдерживаемый маршрут даёт 404, неожиданная внутренняя ошибка — безопасное 500-сообщение без stack trace. JSON body ограничено 16 KiB; Content-Type, Content-Length, число query-параметров, поля и типы проверяются. Ошибки API имеют `{error: {code, message, fields}}`.
 
-Заголовки `Authorization: Bearer <ownerToken>` и `Idempotency-Key: <random-key>` должны сопровождать запрос. Тело ограничивается полями `consultationId`, `slotId`, `instituteId`, `displayName`, `need`, `needTags`. Сервер обязан повторно проверить:
+`Authorization: Bearer <ownerToken>` обязателен для list/create/cancel. `Idempotency-Key` обязателен для create/cancel. Сервер повторно проверяет связь consultation/slot, институт, будущее время, длину строк, need tags и активный дубликат владельца.
 
-- существование консультации, слота и их связь;
-- доступность консультации для выбранного института, включая ИИТА;
-- начало в будущем, UTC RFC3339 и допустимую длительность;
-- длину строк, допустимые теги и отсутствие лишних полей;
-- свободное место и отсутствие активного дубликата владельца на том же слоте.
+## 8. SQLite, транзакции и идемпотентность
 
-Новая запись возвращает `201`; корректный повтор ранее завершённого идемпотентного запроса возвращает сохранённый ответ с `200`. Занятость возвращает `409 SLOT_FULL`, тот же ключ с другим телом — `409 IDEMPOTENCY_CONFLICT`. Нельзя раскрывать существование чужой записи в сообщениях или списках.
+`backend/db.py` создаёт:
 
-Health не должен сообщать наружу пути, секреты или содержимое БД. Analytics не должен возвращать `displayName`, свободный `need`, owner token и idempotency payload.
+- `schema_meta` с seed metadata/version и `owner_hash_algorithm=hmac-sha256-v1`;
+- `institutes`, `topics`, `consultations`, `consultation_institutes`, `consultation_tags`;
+- `slots` с `capacity` и `reserved_count`;
+- `owners` с `token_hash` и `created_at`;
+- `bookings`, `booking_need_tags`;
+- `idempotency_keys` с owner/key/operation/request hash/response/status/created_at.
 
-## 7. SQLite и транзакции
+Каждое подключение включает foreign keys, `busy_timeout=5000`, WAL и `synchronous=NORMAL`. Constraints ограничивают формат, статус, длительность, вместимость, `0 <= reserved_count <= capacity`, need tags и длины полей. Частичный unique index допускает только одну активную запись владельца на слот; есть индексы owner/status, slot/status и consultation/position. Seed импортируется UPSERT-ами в `BEGIN IMMEDIATE`, без дублей и сброса занятости.
 
-Backend планируется на Python stdlib (`sqlite3`, HTTP-сервер stdlib, `json`, `hashlib`, `hmac`, `secrets`, `urllib`) без requirements-файла. Предварительная схема:
+### Создание
 
-- `schema_meta` — версия миграции и seed;
-- `institutes`, `topics`, `consultations`, `consultation_institutes`;
-- `slots` с `starts_at`, `ends_at`, `mode`, `location`, `capacity`, `reserved_count`;
-- `owners` с `token_hash` и временем создания;
-- `bookings` с owner, consultation, slot, институтом, запросом, статусом и UTC-метками;
-- `booking_need_tags` с нормализованными тегами;
-- `idempotency_keys` с owner, ключом, hash запроса, HTTP status и сохранённым ответом.
+`backend/repository.py` выполняет network/JSON validation до транзакции, затем `BEGIN IMMEDIATE`:
 
-При каждом подключении должны включаться `PRAGMA foreign_keys = ON`, разумный `busy_timeout` и, после проверки развёртывания, WAL. Все значения передаются параметрами SQL. Seed импортируется идемпотентно по стабильным ID; повторный запуск не должен удваивать справочник.
+1. Находит `(owner_hash, key)` и сравнивает operation/request hash.
+2. Возвращает сохранённый response с HTTP 200 при exact replay; другой operation/payload даёт `IDEMPOTENCY_CONFLICT`.
+3. Повторно проверяет справочник и бизнес-правила.
+4. Выполняет условный `UPDATE slots ... reserved_count = reserved_count + 1` только при `reserved_count < capacity` и будущем слоте.
+5. Проверяет `rowcount`, вставляет booking/tags/idempotency response и делает commit.
 
-### Создание: защита от race condition
-
-Операция создания должна выполняться в одной write-транзакции:
-
-1. Завершить сетевые вызовы и базовую валидацию **до** транзакции.
-2. Выполнить `BEGIN IMMEDIATE`, чтобы сериализовать конкурирующие записи SQLite.
-3. Проверить `(owner_id, idempotency_key)` и hash запроса: вернуть сохранённый ответ или отклонить конфликт ключа.
-4. Повторно прочитать слот внутри транзакции и проверить бизнес-правила.
-5. Выполнить условный атомарный UPDATE:
-
-```sql
-UPDATE slots
-SET reserved_count = reserved_count + 1
-WHERE id = ? AND reserved_count < capacity;
-```
-
-6. Проверить число изменённых строк. Ноль означает отсутствие места либо слота; транзакция откатывается, клиент получает `SLOT_FULL` или `NOT_FOUND`.
-7. Вставить booking, теги и idempotency response, затем `COMMIT`. При любой ошибке — `ROLLBACK`.
-
-Проверка `SELECT` свободного места сама по себе недостаточна. Отдельный тест следующего спринта должен запустить конкурирующие запросы на слот `capacity = 1` и доказать ровно одну активную запись, `reserved_count = 1` и корректный `409` остальным. В scaffold такой проверки ещё нет.
-
-`SQLITE_BUSY` можно повторять ограниченное число раз с короткой задержкой, сохраняя idempotency key. Нельзя выполнять запрос к Open-Meteo или другой сетевой вызов внутри транзакции.
+При отсутствии места, ошибке или исключении транзакция откатывается. Сетевых вызовов внутри write-транзакции нет.
 
 ### Отмена
 
-Отмена также должна использовать `BEGIN IMMEDIATE`:
+Отмена также использует `BEGIN IMMEDIATE` и request hash для `cancel + bookingId`. Переход active → cancelled выполняется условным UPDATE владельца; декремент слота происходит только при одной изменённой записи и `reserved_count > 0`. Повтор уже отменённой записи или exact idempotent replay не делает второй декремент. Response сохраняется, любые ошибки вызывают rollback.
 
-```sql
-UPDATE bookings
-SET status = 'cancelled', cancelled_at = ?
-WHERE id = ? AND owner_id = ? AND status = 'active';
-```
+### Ограничение хранения
 
-Только при ровно одной изменённой строке слот обновляется условным `reserved_count = reserved_count - 1` с ограничением `reserved_count > 0`. Затем сохраняется idempotency response и выполняется commit. Если запись уже отменена этим владельцем, повтор возвращает текущий отменённый результат без второго декремента. Чужой или несуществующий ID не должен раскрывать лишние сведения.
+Автоматической очистки старых idempotency responses пока нет. Для эксплуатации нужна отдельная retention-процедура, не удаляющая саму историю записей.
 
-Ограничения целостности должны гарантировать `0 <= reserved_count <= capacity`, валидный статус, уникальность активного дубликата владельца на слоте и уникальность `(owner_id, idempotency_key)`.
+## 9. Owner token и HMAC
 
-## 8. Idempotency и owner token
+Клиентский owner token содержит 256 бит случайности. На сервере он не сохраняется: `owner_hash()` вычисляет HMAC-SHA-256(token, runtime pepper), а `owners.token_hash` и booking owner lookup используют этот hex hash в SQL.
 
-### Idempotency
+`APP_OWNER_PEPPER` обязателен: принимается hex не менее 32 байтов или сильная строка не менее 32 символов без управляющих символов. Pepper не входит в Git, Docker image, seed, API или analytics. **При смене pepper старые HMAC перестают соответствовать owner-token, поэтому прежние записи становятся недоступны владельцам.** Между restarts нужен тот же pepper.
 
-- Ключ создаётся на клиенте для конкретного черновика и хранится до получения окончательного ответа.
-- Сервер считает hash канонического тела и связывает его с `(owner_id, key)`.
-- Тот же ключ и то же тело возвращают тот же booking без нового UPDATE вместимости.
-- Тот же ключ с другим телом даёт `409 IDEMPOTENCY_CONFLICT`.
-- После успешного создания новый самостоятельный черновик получает новый ключ.
-- Срок хранения idempotency responses должен быть ограничен документированной очисткой, не нарушающей историю записей.
+`hmac.compare_digest` применяется к **request hash идемпотентности**, а не к owner lookup: owner ищется SQL по HMAC. Raw token не пишется в SQLite, analytics или ответы; HTTP request logging отключён в `app.py`.
 
-### Владение без аккаунта
+## 10. Analytics, CSV и ICS
 
-Клиент должен создать криптографически случайный owner token длиной не менее 256 бит. Raw token нужен браузеру для list/cancel и поэтому остаётся только в его едином localStorage state; это не пароль и не реальная учётная запись.
+Server analytics выполняет все свои чтения в отдельной `BEGIN`-транзакции, поэтому справочники институтов/тем и агрегаты внутри analytics-ответа соответствуют одному read snapshot. Полный каталог на главной загружается отдельным вызовом `getCatalog()`. По всем 20 институтам и 6 темам заранее создаются нулевые значения; `totalActive` считает только active записи, optional topic filter применяется к строкам и тегам. В ответе нет `displayName`, raw `need`, booking IDs, owner tokens или idempotency payloads.
 
-Сервер обязан сохранять **только HMAC-SHA-256** от токена с серверным pepper либо эквивалентный криптографический хеш с сопоставимой защитой. Сравнение выполняется через `hmac.compare_digest`. Raw token не пишется в SQLite, журналы, analytics и ответы API. Pepper задаётся через защищённую конфигурацию будущего deploy и не коммитится. Промышленный transport должен использовать TLS; адреса и параметры инфраструктуры в этот документ не включаются.
+Local analytics использует тот же seed и только активные записи текущего local state. Главная не объединяет local/server агрегаты, а scope явно подписан.
 
-Raw token в localStorage уязвим при XSS и доступе к профилю браузера, поэтому объём личных данных минимален, DOM-рендер безопасен, а демо-дисклеймер запрещает настоящие сведения.
+CSV создаётся в `pages/analytics-export.js` с UTF-8 BOM для Excel. Metadata ограничена scope/filter/generatedAt; секции институтов, тем, тегов и форматов содержат только `id/name/count`. Файл скачивается через Blob, ObjectURL отзывается.
 
-## 9. Open-Meteo
+`pages/calendar.js` создаёт RFC5545 VCALENDAR/VEVENT для активной записи: UTC `DTSTART`/`DTEND`/`DTSTAMP`, escaping текста и UTF-8 folding строк до 75 октетов. ICS содержит выбранную запись и её потребность, поэтому относится к данным владельца, а не к общей аналитике.
 
-Полезный внешний API планируется для прогноза погоды на дату очной консультации. Open-Meteo выбран как публичный источник без клиентского секретного ключа. Конкретный endpoint, параметры сети и инфраструктурные адреса не включаются в scaffold.
+## 11. Погода
 
-Будущий адаптер должен:
+`docs/assets/js/weather.js` напрямую обращается к Open-Meteo без секретного API key:
 
-- передавать только демонстрационные координаты/дату, без адреса преподавателя;
-- применять `AbortController` и серверный timeout;
-- показывать независимые состояния `loading`, `result`, `error` и кнопку `retry`;
-- нормализовать температуру, осадки, ветер, единицы и время прогноза;
-- проверять content type, HTTP status и формат JSON, а не подставлять `undefined` в UI;
-- кешировать только краткоживущий погодный результат отдельно в памяти, не создавая второй localStorage key;
-- сообщать о недоступности прогноза для даты вне горизонта API;
-- не блокировать выбор слота, оформление и отмену при ошибке или медленном ответе.
+- current для главной и hourly для конкретного слота;
+- демонстрационные координаты Санкт-Петербурга и `Europe/Moscow`;
+- `AbortController` с timeout, проверка HTTP/JSON и расшифровка WMO codes;
+- выбор ближайшего часа, отдельная обработка даты вне горизонта;
+- loading/result/error/retry без блокировки оформления;
+- `WeakMap` смонтированных виджетов и requestNumber хранят состояние только в памяти. Отдельного persistent weather store нет; refresh создаёт новый запрос. Отдельного кэша погодных ответов в текущем `weather.js` нет.
 
-Предпочтителен server proxy, чтобы скрыть детали сетевого контура и ограничить параметры запроса. Static mode может использовать отдельный явно настроенный клиентский адаптер после проверки доступности источника; без настройки виджет должен честно показывать недоступность, а не выдуманную погоду.
+Backend имеет самостоятельный `GET /api/v1/weather` с current proxy, server timeout, лимитом ответа и нормализацией. Браузерный UI **не обязан** использовать proxy и в текущей реализации обращается к Open-Meteo напрямую.
 
-## 10. Безопасность и приватность
+## 12. Безопасность и приватность
 
-Проектные обязательства:
+Реализовано:
 
-- выводить пользовательские и API-строки через `textContent`/DOM, не через `innerHTML`;
-- ограничивать длину полей, список тегов, размер тела и число параметров на сервере;
-- применять параметризованный SQL и запрещать неиспользуемые поля запроса;
-- не собирать пароли, платёжные данные, реальные контакты и чувствительные сведения;
-- не записывать Authorization, owner token, pepper, тело личного запроса и stack trace в доступный журнал;
-- добавить ограничение частоты создания/отмены на будущем серверном контуре;
-- использовать узкий CORS allowlist только если frontend и backend будут на разных origin;
-- предусмотреть security headers там, где платформа позволяет их задать; Pages не заменяет настраиваемый backend;
-- возвращать стабильные публичные коды ошибок без SQL и внутренних путей;
-- хранить секреты только в защищённой конфигурации окружения, не в `docs`, seed, Docker image или Git.
+- DOM/`textContent`, строгие DTO, allowlist query/body fields и лимит размера;
+- параметризованный SQL, constraints и транзакции;
+- HMAC владельца и отсутствие raw token в БД/API analytics;
+- безопасные публичные ошибки без SQL, внутренних путей и stack trace;
+- запрет DB path внутри `docs`, исключение секретов/artefacts через `.gitignore` и `.dockerignore`;
+- базовые response headers в `backend/app.py`: CSP, `nosniff`, `no-referrer`, frame/permissions restrictions;
+- независимые ошибки погоды, отсутствие секретного weather key и demo privacy-инструкции.
 
-## 11. Accessibility и responsive
+Это не делает проект готовым к реальным персональным данным. Raw local token уязвим при XSS, учебный deploy не заменяет полноценную модель угроз и эксплуатационную защиту.
 
-Общий каркас уже задаёт skip link, семантические регионы, keyboard focus, светлую палитру и reduced-motion стили. Следующие этапы обязаны проверить их фактически и дополнить:
+## 13. Accessibility и responsive
 
-- весь сквозной путь только клавиатурой, включая мобильное меню, фильтры, подтверждение и отмену;
-- видимый фокус, логичный порядок tab и возврат фокуса после Escape/закрытия;
-- связанные `label`, описания ошибок через `aria-describedby`, `aria-invalid` и текстовое сообщение;
-- `aria-live` для числа результатов, создания, отмены и погоды без избыточных объявлений;
-- отсутствие информации только цветом; проверка контраста текста, badge и кнопок;
-- `aria-busy` и skeleton без блокировки навигации;
-- reduced motion без потери результата и отзывчивости;
-- ширина от 320 px без горизонтального скролла, удобные touch-targets и перенос длинных строк;
-- корректные заголовки и единый skip link на каждой странице.
+В интерфейсе присутствуют skip link, семантические регионы и заголовки, связанные labels/hints/errors, `aria-invalid`, `aria-describedby`, `aria-busy`, live regions, видимый focus, native details/dialog, возврат фокуса, keyboard-friendly controls, touch targets, reduced-motion CSS и layout от 320 px. Таблица аналитики прокручивается внутри собственного контейнера; итоговый media query до 25 rem скрывает mode badge, чтобы header не переполнялся.
 
-Наличие CSS-правил в scaffold не считается выполненной ручной проверкой доступности.
+Зафиксированный keyboard-only путь и проверка 320 px отмечены DONE в roadmap. Присутствие CSS не считается проверкой ассистивной технологией. По явной директиве пользователя следующие проверки имеют статус `CANCELED` и **не выполнены**: системная reduced-motion, live regions с ассистивной технологией, полный mobile-путь на публичном Pages, loading/error/retry API на Pages, репетиция защиты, реальный network block погоды и финальный комплексный security/release review.
 
-## 12. Docker и независимый deploy
+## 14. Docker и независимый deploy
 
-Backend образ следующего этапа должен:
+`Dockerfile` использует `python:3.13-alpine`, копирует только `backend` и `docs`, не требует requirements или frontend build. Контейнер запускается под numeric `USER 10001:10001`.
 
-- использовать Python stdlib без npm/requirements и многоэтапной frontend-сборки;
-- запускаться non-root через отдельного пользователя и `USER`;
-- иметь writable только предназначенный DB volume, а не весь корневой FS;
-- исключать БД, runtime-файлы, секреты, `.git` и локальные артефакты через `.dockerignore`;
-- получать путь БД и секретный pepper через конфигурацию окружения без значений в репозитории;
-- содержать health check и корректно завершаться по сигналу;
-- документировать backup/restore файла SQLite и ограничение на одного writer/одну реплику для учебного deploy.
+`compose.yaml` задаёт:
 
-Frontend Pages из `main` / `docs` и backend должны разворачиваться независимо. Сначала можно опубликовать честный local/static demo, затем отдельно подключить server mode. Для same-origin proxy сохраняется `./api/v1`; иной origin задаётся вне публичного scaffold и требует CORS. Промышленный адрес, учётные данные, pepper и параметры внешней инфраструктуры не документируются и не коммитятся.
+- named volume `iita-data` для `/data/iita.db`;
+- `read_only: true`, tmpfs `/tmp`, `cap_drop: ALL`, `no-new-privileges`;
+- обязательный runtime `APP_OWNER_PEPPER` без значения в Git;
+- необязательные `APP_BIND` и `APP_PORT` с defaults;
+- restart policy, stop grace period и healthcheck `/api/v1/health`.
 
-## 13. Ограничения GitHub Pages и static mode
+Backend и Pages разворачиваются независимо. Повторный запуск с тем же volume и pepper сохраняет данные и владение. Практический quickstart находится в [`README.md`](README.md).
 
-- Pages обслуживает только статические файлы: Python, SQLite transactions и server-side hash там не исполняются.
-- ES modules и `fetch(seed.json)` требуют HTTP-просмотр; открытие через `file://` не поддерживается.
-- Относительные ссылки обязательны из-за возможного base path проекта.
-- localStorage привязан к origin и браузеру, не синхронизируется и может быть удалён.
-- Локальная занятость не доказывает глобальную вместимость; server race checks нужны отдельно.
-- Pages не предоставляет место для серверных секретов и не должен получать pepper или параметры БД.
-- Погодный API может быть недоступен по сети, CORS или горизонту прогноза; основной сценарий обязан продолжать работать.
+## 15. GitHub Pages и static mode
 
-## 14. Критерий готовности проектного контракта
+Pages обслуживает только `main` / `docs` по HTTPS:
 
-Контракт будет считаться реализованным только после отдельно зафиксированных проверок: сквозной local и server путь, обновление, отмена, пустой фильтр, ошибочный ввод, повторный submit, конфликт двух запросов на `capacity = 1`, несанкционированная отмена, погода loading/result/error/retry, клавиатура, 320 px, Pages, non-root Docker и обновлённая документация. До этого соответствующие задачи остаются TODO в `CHANGELOG.md`.
+- Python, SQLite, HMAC и server transactions там не исполняются;
+- ES modules и `fetch(seed.json)` требуют HTTP, не `file://`;
+- localStorage принадлежит конкретному origin и браузеру;
+- relative URLs необходимы для project base path;
+- локальная занятость не доказывает глобальную вместимость;
+- секреты и pepper на Pages не помещаются;
+- weather зависит от сети/CORS/горизонта, но не блокирует основной путь.
+
+## 16. Production-ограничения
+
+- Rate limiting не реализован.
+- Автоматической очистки старых idempotency responses нет.
+- SQLite рассчитан на single-writer и одну учебную реплику, а не горизонтальное масштабирование.
+- Backend отправляет базовые security headers, но конечные TLS/CSP/security-header гарантии зависят от внешнего reverse proxy и Pages; в учебном deploy они не гарантируются.
+- Резервное копирование SQLite требует согласованной остановки writer или SQLite backup API и отдельной операционной процедуры. Готовые backup/restore не заявляются.
+- Нет готовой инфраструктуры для реальных персональных данных, реальных аккаунтов и официального расписания.
+
+## 17. Release status
+
+Функциональность PR #1–#7 слита в `main`, Pages опубликован, отдельный Docker deploy проверен. Финальные README, ARCHITECTURE и CHANGELOG актуализированы; mobile header CSS-fix ограничен media query до 25 rem.
+
+Детальные 122 задачи, подтверждённые результаты и семь `CANCELED` находятся в [`CHANGELOG.md`](CHANGELOG.md). Повторять отменённые пользователем проверки этот документ не предлагает.

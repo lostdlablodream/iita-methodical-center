@@ -1470,3 +1470,13 @@ code {
     display: none;
   }
 }
+
+@media (max-width: 25rem) {
+  .header-inner {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .badge-mode {
+    display: none;
+  }
+}
