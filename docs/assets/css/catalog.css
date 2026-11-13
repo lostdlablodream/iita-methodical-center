@@ -1,0 +1,268 @@
+.page-repository {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.page-repository p,
+.repository-actions {
+  margin: 0.55rem 0 0;
+}
+
+.catalog-results-section {
+  padding-top: 0;
+}
+
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-top: 1rem;
+}
+
+.active-filters h3 {
+  flex: none;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.active-filter-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.active-filter {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #cfd1ef;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-hover);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.active-filter::after {
+  content: "×";
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.catalog-grid {
+  align-items: stretch;
+}
+
+.consultation-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1rem;
+  scroll-margin-top: 7rem;
+}
+
+.consultation-card.is-highlighted {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgb(83 87 200 / 0.14), var(--shadow-md);
+}
+
+.consultation-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.consultation-card h3 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.consultation-summary,
+.consultation-description {
+  margin: 0;
+}
+
+.consultation-summary {
+  color: var(--color-heading);
+  font-weight: 650;
+}
+
+.consultation-description,
+.consultation-meta {
+  color: var(--color-muted);
+  font-size: 0.88rem;
+}
+
+.consultation-meta {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.consultation-meta div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.consultation-meta dt {
+  color: var(--color-heading);
+  font-weight: 750;
+}
+
+.consultation-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.consultation-card .tag-list {
+  gap: 0.4rem;
+}
+
+.consultation-card .tag {
+  font-size: 0.7rem;
+}
+
+.slot-list {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  margin: auto 0 0;
+  list-style: none;
+}
+
+.slot-list-title {
+  margin: auto 0 -0.35rem;
+  color: var(--color-heading);
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.catalog-slot {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+}
+
+.catalog-slot.is-unavailable {
+  background: #f1f2f5;
+  color: var(--color-muted);
+}
+
+.catalog-slot time {
+  display: block;
+  color: var(--color-heading);
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.catalog-slot p {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.catalog-slot .button {
+  width: 100%;
+}
+
+.slot-unavailable {
+  display: block;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius-sm);
+  background: #e4e7ed;
+  color: #5b6677;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.consultation-card > .choose-time {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.catalog-skeleton-card {
+  min-height: 32rem;
+}
+
+.catalog-skeleton-card .skeleton-line {
+  height: 1rem;
+}
+
+.catalog-skeleton-card .skeleton-slot {
+  height: 8rem;
+  margin-top: 1rem;
+}
+
+#catalog-highlight-status,
+#catalog-error {
+  margin-bottom: 1rem;
+}
+
+#catalog-error p {
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 68rem) {
+  .catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 47.5rem) {
+  .catalog-results-section .section-heading {
+    align-items: flex-start;
+  }
+
+  .consultation-card {
+    scroll-margin-top: 6rem;
+  }
+}
+
+@media (max-width: 42rem) {
+  .catalog-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .active-filters {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .active-filter-list,
+  .active-filter {
+    width: 100%;
+  }
+
+  .active-filter {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 35rem) {
+  .section-heading > [data-catalog-reset] {
+    width: 100%;
+  }
+
+  .repository-actions,
+  .repository-actions .button,
+  #catalog-error .button-row,
+  #catalog-error .button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .consultation-card {
+    scroll-behavior: auto;
+  }
+}
