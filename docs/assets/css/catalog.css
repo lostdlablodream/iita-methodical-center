@@ -38,7 +38,7 @@
   align-items: center;
   gap: 0.45rem;
   padding: 0.45rem 0.75rem;
-  border: 1px solid #cfd1ef;
+  border: 1px solid #afd5e5;
   border-radius: var(--radius-pill);
   background: var(--color-primary-soft);
   color: var(--color-primary-hover);
@@ -67,7 +67,7 @@
 
 .consultation-card.is-highlighted {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgb(83 87 200 / 0.14), var(--shadow-md);
+  box-shadow: 0 0 0 3px rgb(0 106 143 / 0.16), var(--shadow-md);
 }
 
 .consultation-card-header {

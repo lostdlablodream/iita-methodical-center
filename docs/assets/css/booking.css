@@ -111,7 +111,7 @@
 }
 
 .slot-option:has(input:focus-visible) {
-  outline: 3px solid var(--color-accent);
+  outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 
