@@ -5,6 +5,7 @@ services:
       APP_HOST: 0.0.0.0
       APP_PORT: 8080
       APP_DB_PATH: /data/iita.db
+      APP_OWNER_PEPPER: "${APP_OWNER_PEPPER:?APP_OWNER_PEPPER must be set in the runtime environment}"
     ports:
       - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8080}:8080"
     volumes:

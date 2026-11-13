@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import math
+import os
 import socket
 import sqlite3
 import urllib.error
@@ -29,6 +30,12 @@ WEATHER_API_URL = "https://api.open-meteo.com/v1/forecast"
 WEATHER_FIELDS = "temperature_2m,precipitation_probability,weather_code,wind_speed_10m"
 WEATHER_RESPONSE_LIMIT = 65536
 
+_OWNER_PEPPER = None
+_OWNER_PEPPER_ERROR = (
+    "APP_OWNER_PEPPER is required: use at least 32 random bytes in hex "
+    "or a strong string of at least 32 characters"
+)
+
 BOOKING_SELECT = """
 SELECT
     b.id, b.consultation_id, b.slot_id, b.institute_id,
@@ -51,8 +58,33 @@ def format_datetime(value):
     )
 
 
+def configure_owner_pepper():
+    global _OWNER_PEPPER
+    _OWNER_PEPPER = None
+    value = os.environ.get("APP_OWNER_PEPPER")
+    if (
+        value is None
+        or len(value) < 32
+        or value != value.strip()
+        or any(ord(character) < 32 or ord(character) == 127 for character in value)
+    ):
+        raise RuntimeError(_OWNER_PEPPER_ERROR)
+    is_hex = all(character in "0123456789abcdefABCDEF" for character in value)
+    if is_hex:
+        if len(value) < 64 or len(value) % 2:
+            raise RuntimeError(_OWNER_PEPPER_ERROR)
+        pepper = bytes.fromhex(value)
+    else:
+        pepper = value.encode("utf-8")
+    _OWNER_PEPPER = pepper
+
+
 def owner_hash(owner_token):
-    return hashlib.sha256(owner_token.encode("ascii")).hexdigest()
+    if _OWNER_PEPPER is None:
+        raise RuntimeError("Owner hashing is not configured")
+    return hmac.new(
+        _OWNER_PEPPER, owner_token.encode("ascii"), hashlib.sha256
+    ).hexdigest()
 
 
 def request_hash(operation, payload):
@@ -506,72 +538,79 @@ def cancel_booking(connection, owner_token, key, value):
 
 def get_analytics(connection, query):
     topic_id = normalize_analytics_filters(query)
-    if topic_id and not connection.execute(
-        "SELECT 1 FROM topics WHERE id = ?", (topic_id,)
-    ).fetchone():
-        raise validation(
-            "Неизвестная тема аналитики.",
-            {"topicId": "Выберите тему из справочника."},
-        )
+    connection.execute("BEGIN")
+    try:
+        if topic_id and not connection.execute(
+            "SELECT 1 FROM topics WHERE id = ?", (topic_id,)
+        ).fetchone():
+            raise validation(
+                "Неизвестная тема аналитики.",
+                {"topicId": "Выберите тему из справочника."},
+            )
 
-    by_institute = {
-        row["id"]: 0
-        for row in connection.execute("SELECT id FROM institutes ORDER BY position")
-    }
-    by_topic = {
-        row["id"]: 0
-        for row in connection.execute("SELECT id FROM topics ORDER BY position")
-    }
-    by_format = {"online": 0, "offline": 0}
-    by_need_tag = {tag: 0 for tag in sorted(ALLOWED_NEED_TAGS)}
-    parameters = []
-    topic_clause = ""
-    if topic_id:
-        topic_clause = " AND c.topic_id = ?"
-        parameters.append(topic_id)
-    active_rows = connection.execute(
-        """
-        SELECT b.institute_id, c.topic_id, s.mode
-        FROM bookings b
-        JOIN consultations c ON c.id = b.consultation_id
-        JOIN slots s ON s.id = b.slot_id
-        WHERE b.status = 'active'
-        """
-        + topic_clause,
-        parameters,
-    ).fetchall()
-    for row in active_rows:
-        if row["institute_id"] in by_institute:
-            by_institute[row["institute_id"]] += 1
-        if row["topic_id"] in by_topic:
-            by_topic[row["topic_id"]] += 1
-        if row["mode"] in by_format:
-            by_format[row["mode"]] += 1
-    tag_rows = connection.execute(
-        """
-        SELECT t.tag, COUNT(*) AS count
-        FROM booking_need_tags t
-        JOIN bookings b ON b.id = t.booking_id
-        JOIN consultations c ON c.id = b.consultation_id
-        WHERE b.status = 'active'
-        """
-        + topic_clause
-        + " GROUP BY t.tag",
-        parameters,
-    ).fetchall()
-    for row in tag_rows:
-        if row["tag"] in by_need_tag:
-            by_need_tag[row["tag"]] = row["count"]
-    return {
-        "scope": "server",
-        "generatedAt": utc_now(),
-        "topicId": topic_id,
-        "totalActive": len(active_rows),
-        "byInstitute": by_institute,
-        "byTopic": by_topic,
-        "byFormat": by_format,
-        "byNeedTag": by_need_tag,
-    }
+        by_institute = {
+            row["id"]: 0
+            for row in connection.execute("SELECT id FROM institutes ORDER BY position")
+        }
+        by_topic = {
+            row["id"]: 0
+            for row in connection.execute("SELECT id FROM topics ORDER BY position")
+        }
+        by_format = {"online": 0, "offline": 0}
+        by_need_tag = {tag: 0 for tag in sorted(ALLOWED_NEED_TAGS)}
+        parameters = []
+        topic_clause = ""
+        if topic_id:
+            topic_clause = " AND c.topic_id = ?"
+            parameters.append(topic_id)
+        active_rows = connection.execute(
+            """
+            SELECT b.institute_id, c.topic_id, s.mode
+            FROM bookings b
+            JOIN consultations c ON c.id = b.consultation_id
+            JOIN slots s ON s.id = b.slot_id
+            WHERE b.status = 'active'
+            """
+            + topic_clause,
+            parameters,
+        ).fetchall()
+        for row in active_rows:
+            if row["institute_id"] in by_institute:
+                by_institute[row["institute_id"]] += 1
+            if row["topic_id"] in by_topic:
+                by_topic[row["topic_id"]] += 1
+            if row["mode"] in by_format:
+                by_format[row["mode"]] += 1
+        tag_rows = connection.execute(
+            """
+            SELECT t.tag, COUNT(*) AS count
+            FROM booking_need_tags t
+            JOIN bookings b ON b.id = t.booking_id
+            JOIN consultations c ON c.id = b.consultation_id
+            WHERE b.status = 'active'
+            """
+            + topic_clause
+            + " GROUP BY t.tag",
+            parameters,
+        ).fetchall()
+        for row in tag_rows:
+            if row["tag"] in by_need_tag:
+                by_need_tag[row["tag"]] = row["count"]
+        response = {
+            "scope": "server",
+            "generatedAt": utc_now(),
+            "topicId": topic_id,
+            "totalActive": len(active_rows),
+            "byInstitute": by_institute,
+            "byTopic": by_topic,
+            "byFormat": by_format,
+            "byNeedTag": by_need_tag,
+        }
+        connection.commit()
+        return response
+    except Exception:
+        connection.rollback()
+        raise
 
 
 def _finite_number(value):

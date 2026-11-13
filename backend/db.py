@@ -7,6 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DOCS_ROOT = PROJECT_ROOT / "docs"
 SEED_PATH = DOCS_ROOT / "data" / "seed.json"
 DEFAULT_DB_PATH = PROJECT_ROOT / "runtime" / "iita.db"
+OWNER_HASH_ALGORITHM = "hmac-sha256-v1"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS schema_meta (
@@ -193,8 +194,43 @@ def connect(path):
     return connection
 
 
+def _reject_incompatible_pre_release(db_path):
+    if not db_path.exists():
+        return
+    connection = sqlite3.connect(
+        db_path.as_uri() + "?mode=ro", uri=True, isolation_level=None
+    )
+    try:
+        connection.execute("PRAGMA query_only = ON")
+        owners_table = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'owners'"
+        ).fetchone()
+        if not owners_table:
+            return
+        has_owners = connection.execute("SELECT 1 FROM owners LIMIT 1").fetchone()
+        if not has_owners:
+            return
+        marker = None
+        meta_table = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'schema_meta'"
+        ).fetchone()
+        if meta_table:
+            row = connection.execute(
+                "SELECT value FROM schema_meta WHERE key = 'owner_hash_algorithm'"
+            ).fetchone()
+            marker = row[0] if row else None
+        if marker != OWNER_HASH_ALGORITHM:
+            raise RuntimeError(
+                "Incompatible pre-release database: owner hash algorithm marker "
+                "is missing or unsupported; use a new volume"
+            )
+    finally:
+        connection.close()
+
+
 def initialize(path=None):
     db_path = resolve_db_path(path)
+    _reject_incompatible_pre_release(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with SEED_PATH.open("r", encoding="utf-8") as seed_file:
         seed = json.load(seed_file)
@@ -288,6 +324,13 @@ def import_seed(connection, seed):
             ON CONFLICT(key) DO UPDATE SET value = excluded.value
             """,
             (seed["meta"]["seedVersion"],),
+        )
+        connection.execute(
+            """
+            INSERT INTO schema_meta (key, value) VALUES ('owner_hash_algorithm', ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+            """,
+            (OWNER_HASH_ALGORITHM,),
         )
         connection.commit()
     except Exception:

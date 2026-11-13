@@ -341,6 +341,7 @@ def create_server(
     weather_url=None,
     weather_timeout=None,
 ):
+    repository.configure_owner_pepper()
     resolved_db_path = db.initialize(db_path)
     resolved_host = host if host is not None else os.environ.get("APP_HOST", "127.0.0.1")
     raw_port = port if port is not None else os.environ.get("APP_PORT", "8080")
@@ -374,7 +375,10 @@ def create_server(
 
 
 def main():
-    httpd = create_server()
+    try:
+        httpd = create_server()
+    except RuntimeError as error:
+        raise SystemExit(str(error)) from None
     stopping = threading.Event()
 
     def request_stop(_signum, _frame):
