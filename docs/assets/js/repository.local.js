@@ -227,6 +227,22 @@ function activeCount(bookings, slotId) {
   );
 }
 
+function getCancelIdempotencyKeys(booking) {
+  const audited = Array.isArray(booking.cancelIdempotencyKeys) ? booking.cancelIdempotencyKeys : [];
+  if (booking.cancelIdempotencyKey && !audited.includes(booking.cancelIdempotencyKey)) {
+    return [booking.cancelIdempotencyKey, ...audited];
+  }
+  return audited;
+}
+
+function rememberCancelIdempotencyKey(booking, key) {
+  const audited = getCancelIdempotencyKeys(booking);
+  booking.cancelIdempotencyKeys = audited.includes(key) ? [...audited] : [...audited, key];
+  if (booking.cancelIdempotencyKey === null) {
+    booking.cancelIdempotencyKey = key;
+  }
+}
+
 function validateSeed(seed) {
   const valid = isObject(seed)
     && Array.isArray(seed.institutes)
@@ -553,6 +569,7 @@ export function createLocalRepository(options = {}) {
         idempotencyKey: normalizedKey,
         idempotencyHash,
         cancelIdempotencyKey: null,
+        cancelIdempotencyKeys: [],
       };
       state.local.bookings.push(booking);
       return { result: booking, changed: true };
@@ -591,13 +608,28 @@ export function createLocalRepository(options = {}) {
           fields: { bookingId: "Обновите список записей." },
         });
       }
-      if (booking.status === BOOKING_STATUS.CANCELLED) {
+      const keyUsedByAnotherBooking = state.local.bookings.some((candidate) =>
+        candidate.id !== bookingId && getCancelIdempotencyKeys(candidate).includes(normalizedKey));
+      if (keyUsedByAnotherBooking) {
+        throw new RepositoryError(
+          ERROR_CODES.IDEMPOTENCY_CONFLICT,
+          "Этот ключ отмены уже связан с другой записью.",
+          { fields: { idempotencyKey: "Используйте новый ключ отмены для этой записи." } },
+        );
+      }
+
+      const keyAlreadyUsed = getCancelIdempotencyKeys(booking).includes(normalizedKey);
+      if (booking.status === BOOKING_STATUS.CANCELLED && keyAlreadyUsed) {
         return { result: booking, changed: false };
+      }
+
+      rememberCancelIdempotencyKey(booking, normalizedKey);
+      if (booking.status === BOOKING_STATUS.CANCELLED) {
+        return { result: booking, changed: true };
       }
 
       booking.status = BOOKING_STATUS.CANCELLED;
       booking.cancelledAt = resolveNow(now).toISOString();
-      booking.cancelIdempotencyKey = normalizedKey;
       return { result: booking, changed: true };
     }, storageOptions);
   }
