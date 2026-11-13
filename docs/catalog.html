@@ -8,7 +8,9 @@
   <meta name="description" content="Каталог демонстрационных методических консультаций для преподавателей ИИТА СПбГУПТД.">
   <title>Каталог консультаций — Методика</title>
   <link rel="stylesheet" href="./assets/css/common.css">
+  <link rel="stylesheet" href="./assets/css/catalog.css">
   <script type="module" src="./assets/js/components.js"></script>
+  <script type="module" src="./assets/js/pages/catalog.js"></script>
 </head>
 <body data-page="catalog">
   <a class="skip-link" href="#main-content">Перейти к содержанию</a>
@@ -28,7 +30,7 @@
         <a href="./booking.html" data-page-link="booking">Оформление</a>
         <a href="./orders.html" data-page-link="orders">Мои записи</a>
       </nav>
-      <span class="badge badge-mode" data-mode-badge>Учебный демо</span>
+      <span class="badge badge-mode" data-mode-badge>Определяем режим…</span>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-navigation" data-nav-toggle>
         <span class="nav-toggle-icon" aria-hidden="true"><span></span><span></span><span></span></span>
         <span>Меню</span>
@@ -41,15 +43,16 @@
       <div>
         <p class="eyebrow">Выбор направления и времени</p>
         <h1>Каталог консультаций</h1>
-        <p class="page-lead">Двенадцать учебных консультаций по шести направлениям. В следующих этапах здесь появятся поиск, фильтры и переход к выбранному слоту.</p>
+        <p class="page-lead">Двенадцать учебных консультаций по шести направлениям. Ищите по запросу, теме, институту и формату, затем выберите свободный слот.</p>
       </div>
-      <span class="badge badge-neutral">Заготовка страницы</span>
+      <span class="badge badge-accent">Бесплатно · без аккаунта</span>
     </section>
 
-    <div class="container">
-      <div class="alert alert-info" role="status">
-        <strong>Сейчас доступен общий каркас.</strong> Данные подготовлены в <code>data/seed.json</code>; интерактивная загрузка и фильтрация не реализованы на этом этапе.
+    <div class="container page-repository">
+      <div class="alert alert-info" data-repository-alert role="status">
+        <strong>Проверяем режим хранения…</strong>
       </div>
+      <noscript><p class="alert alert-warning">Для загрузки каталога и выбора времени нужен JavaScript.</p></noscript>
     </div>
 
     <section class="section container" aria-labelledby="filters-title">
@@ -58,12 +61,13 @@
           <p class="eyebrow">Параметры поиска</p>
           <h2 id="filters-title">Фильтры каталога</h2>
         </div>
+        <button class="button button-secondary" type="button" data-catalog-reset disabled>Сбросить всё</button>
       </div>
       <form class="filter-panel card" id="catalog-filters" data-catalog-filters aria-describedby="filters-note">
-        <fieldset disabled>
-          <legend class="visually-hidden">Будущие фильтры консультаций</legend>
+        <fieldset data-catalog-filter-fields disabled>
+          <legend class="visually-hidden">Фильтры консультаций</legend>
           <div class="field search-field">
-            <label for="catalog-search">Поиск по названию или описанию</label>
+            <label for="catalog-search">Поиск по названию, описанию и тегам</label>
             <input id="catalog-search" name="query" type="search" placeholder="Например, обратная связь" autocomplete="off">
           </div>
           <div class="field">
@@ -74,7 +78,7 @@
           </div>
           <div class="field">
             <label for="catalog-format">Формат</label>
-            <select id="catalog-format" name="format">
+            <select id="catalog-format" name="mode">
               <option value="">Любой формат</option>
               <option value="online">Онлайн</option>
               <option value="offline">Очно</option>
@@ -83,35 +87,33 @@
           <div class="field">
             <label for="catalog-institute">Институт</label>
             <select id="catalog-institute" name="instituteId">
-              <option value="iita">ИИТА</option>
+              <option value="">Все институты</option>
             </select>
           </div>
         </fieldset>
-        <p class="form-note" id="filters-note">Поля показаны для согласования структуры интерфейса и будут включены вместе с логикой каталога.</p>
+        <p class="form-note" id="filters-note">Фильтры можно комбинировать. Поиск применяется с небольшой паузой после ввода, адрес страницы обновляется без перезагрузки.</p>
       </form>
+      <div class="active-filters" data-active-filters hidden>
+        <h3>Активные фильтры</h3>
+        <div class="active-filter-list" data-active-filter-list></div>
+      </div>
     </section>
 
-    <section class="section container" aria-labelledby="results-title">
+    <section class="section container catalog-results-section" aria-labelledby="results-title">
       <div class="section-heading compact">
         <div>
           <p class="eyebrow">Демонстрационный справочник</p>
           <h2 id="results-title">Доступные консультации</h2>
         </div>
-        <output class="text-muted" id="catalog-count" data-catalog-count aria-live="polite">12 позиций в seed</output>
+        <output class="text-muted" id="catalog-count" data-catalog-count aria-live="polite">Загружаем справочник…</output>
       </div>
-      <div class="alert alert-error" id="catalog-error" data-catalog-error role="alert" hidden>
-        Не удалось загрузить справочник. Здесь появится сообщение и действие повторной загрузки.
-      </div>
-      <div class="card-grid card-grid-three" id="catalog-results" data-catalog-results aria-live="polite" aria-busy="false"></div>
+      <div class="alert alert-info" data-catalog-highlight-status role="status" hidden></div>
+      <div class="alert alert-error" id="catalog-error" data-catalog-error role="alert" hidden></div>
+      <div class="card-grid card-grid-three catalog-grid" id="catalog-results" data-catalog-results aria-live="polite" aria-busy="true"></div>
       <div class="empty-state card" id="catalog-empty" data-catalog-empty hidden>
         <h3>Подходящих консультаций не найдено</h3>
-        <p>Измените запрос или сбросьте фильтры, когда эти действия будут подключены.</p>
-      </div>
-      <div class="empty-state card" id="catalog-scaffold-note">
-        <span class="badge badge-accent">Готово к наполнению</span>
-        <h3>Карточки появятся из общего источника данных</h3>
-        <p>Каждая карточка покажет тему, аудиторию, демонстрационного консультанта, ближайшие слоты, формат и остаток мест. Выбор передаст идентификаторы консультации и слота на страницу оформления.</p>
-        <a class="button button-secondary" href="./booking.html">Открыть заготовку оформления</a>
+        <p>Измените запрос или уберите часть фильтров. Сброс вернёт все двенадцать демонстрационных консультаций.</p>
+        <button class="button button-secondary" type="button" data-catalog-reset>Сбросить фильтры</button>
       </div>
     </section>
 
@@ -125,7 +127,7 @@
           <li>Сформулируйте один конкретный вопрос по своему курсу.</li>
           <li>Проверьте описание и целевую аудиторию консультации.</li>
           <li>Выберите онлайн или очный формат и удобную дату.</li>
-          <li>Учитывайте вместимость слота: в части демонстрационных слотов доступно только одно место.</li>
+          <li>Учитывайте остаток мест: занятые и прошедшие слоты нельзя выбрать.</li>
         </ol>
       </div>
     </section>

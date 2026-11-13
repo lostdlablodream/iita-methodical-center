@@ -1,0 +1,372 @@
+.page-repository {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.page-repository p {
+  margin: 0.55rem 0 0;
+}
+
+#booking-feedback {
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--color-border);
+  border-left-width: 0.25rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 0.92rem;
+}
+
+#booking-feedback .button-row {
+  margin-top: 0.85rem;
+}
+
+.booking-main,
+.booking-aside,
+.summary-card {
+  min-width: 0;
+}
+
+.summary-card h2 {
+  max-width: 100%;
+  font-size: clamp(1.35rem, 2vw, 1.65rem);
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+.booking-aside {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.booking-selection {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.booking-selection h3 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.booking-selection p {
+  margin: 0;
+}
+
+.booking-consultant,
+.booking-audience {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+#booking-selection-error {
+  margin-top: 1rem;
+}
+
+#booking-selection-error p {
+  margin-bottom: 0.75rem;
+}
+
+.slot-picker {
+  min-width: 0;
+  padding: 0;
+  margin: 1.5rem 0 0;
+  border: 0;
+}
+
+.slot-picker > legend {
+  padding: 0;
+  color: var(--color-heading);
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.slot-options {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.slot-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+  cursor: pointer;
+}
+
+.slot-option.is-selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.slot-option.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.76;
+}
+
+.slot-option:has(input:focus-visible) {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.slot-option input {
+  width: 1.2rem;
+  height: 1.2rem;
+  margin: 0.25rem 0 0;
+  accent-color: var(--color-primary);
+}
+
+.slot-option-content {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+}
+
+.slot-option-content strong {
+  color: var(--color-heading);
+  overflow-wrap: anywhere;
+}
+
+.slot-option-content span {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.slot-option-content .slot-availability {
+  color: var(--color-success);
+  font-weight: 700;
+}
+
+.slot-option.is-disabled .slot-option-content .slot-availability {
+  color: var(--color-danger);
+}
+
+.confirmation-card {
+  border-color: #bfe1ce;
+  background: var(--color-success-soft);
+}
+
+.confirmation-card.is-cancelled {
+  border-color: #ebd9a9;
+  background: var(--color-warning-soft);
+}
+
+.confirmation-card h2 {
+  margin-bottom: 0.75rem;
+}
+
+.confirmation-card p {
+  overflow-wrap: anywhere;
+}
+
+.confirmation-id {
+  display: block;
+  margin-block: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.confirmation-card .button-row {
+  margin-top: 1.25rem;
+}
+
+.need-counter {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.need-counter.is-invalid {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.demo-confirmation {
+  margin-bottom: 1.25rem;
+}
+
+.demo-confirmation .consent-choice {
+  margin-bottom: 0.4rem;
+}
+
+#booking-need-tags-error {
+  margin-top: -0.75rem;
+}
+
+#booking-form-note {
+  margin-top: 1rem;
+}
+
+.summary-list dd {
+  max-width: 62%;
+  overflow-wrap: anywhere;
+}
+
+.summary-placeholder {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.slot-extra-card h2 {
+  font-size: 1.35rem;
+}
+
+.weather-widget {
+  min-width: 0;
+}
+
+.weather-loading,
+.weather-error,
+.weather-info {
+  display: grid;
+  min-height: 12rem;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+}
+
+.weather-loading p,
+.weather-error p,
+.weather-info p {
+  color: var(--color-muted);
+  font-size: 0.88rem;
+}
+
+.loading-indicator {
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-bottom: 1rem;
+  border: 3px solid var(--color-primary-soft);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: booking-spin 0.8s linear infinite;
+}
+
+@keyframes booking-spin {
+  to { transform: rotate(360deg); }
+}
+
+.weather-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.weather-heading h3,
+.weather-heading p {
+  margin-bottom: 0.35rem;
+}
+
+.weather-location,
+.weather-code,
+.weather-source,
+.weather-metadata {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.weather-temperature {
+  flex: none;
+  margin: 0;
+  color: var(--color-heading);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.weather-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-block: 1rem;
+}
+
+.weather-facts div {
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-soft);
+}
+
+.weather-facts dt {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.weather-facts dd {
+  margin: 0.2rem 0 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.weather-metadata {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.weather-metadata p {
+  margin: 0;
+}
+
+.online-note {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 56rem) {
+  .booking-aside {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 47.5rem) {
+  .booking-aside {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 35rem) {
+  .slot-option {
+    padding: 0.85rem;
+  }
+
+  .summary-list div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .summary-list dd {
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .weather-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #booking-feedback .button,
+  .confirmation-card .button,
+  .repository-actions,
+  .repository-actions .button,
+  #booking-selection-error .button {
+    width: 100%;
+  }
+
+  [data-booking-submit] {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-indicator {
+    animation: none;
+  }
+}

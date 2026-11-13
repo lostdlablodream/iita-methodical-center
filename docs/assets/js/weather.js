@@ -52,8 +52,36 @@ const temperatureFormatter = new Intl.NumberFormat(DEFAULT_LOCALE, {
 });
 const mountedWidgets = new WeakMap();
 
+export class WeatherHorizonError extends Error {
+  constructor(message = "Прогноз для выбранной даты недоступен") {
+    super(message);
+    this.name = "WeatherHorizonError";
+    this.code = "FORECAST_OUTSIDE_HORIZON";
+  }
+}
+
 export function getWeatherCodeLabel(code) {
   return WEATHER_CODE_LABELS[code] ?? "Погодные условия уточняются";
+}
+
+function asValidDate(value) {
+  const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function getDateKeyInTimeZone(value, timeZone = TIME_ZONE) {
+  const date = asValidDate(value);
+  if (!date) {
+    throw new TypeError("startsAt должен содержать корректную дату");
+  }
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone,
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 export function buildCurrentWeatherUrl(options = {}) {
@@ -68,6 +96,23 @@ export function buildCurrentWeatherUrl(options = {}) {
     wind_speed_unit: "ms",
   });
 
+  return `${WEATHER_API_URL}?${parameters.toString()}`;
+}
+
+export function buildSlotWeatherUrl(options = {}) {
+  const config = { ...DEFAULT_OPTIONS, ...options };
+  const dateKey = getDateKeyInTimeZone(config.startsAt, config.timeZone);
+  const parameters = new URLSearchParams({
+    latitude: String(config.latitude),
+    longitude: String(config.longitude),
+    hourly: CURRENT_FIELDS,
+    timezone: config.timeZone,
+    start_date: dateKey,
+    end_date: dateKey,
+    timeformat: "unixtime",
+    temperature_unit: "celsius",
+    wind_speed_unit: "ms",
+  });
   return `${WEATHER_API_URL}?${parameters.toString()}`;
 }
 
@@ -101,8 +146,53 @@ function normalizeCurrentWeather(payload) {
   };
 }
 
-export async function fetchCurrentWeather(options = {}) {
-  const config = { ...DEFAULT_OPTIONS, ...options };
+function hourlyTimeToDate(value) {
+  const date = typeof value === "number" ? new Date(value * 1000) : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function selectNearestHourlyWeather(payload, startsAt) {
+  const target = asValidDate(startsAt);
+  const hourly = payload?.hourly;
+  if (!target || !hourly || !Array.isArray(hourly.time)) {
+    throw new Error("Open-Meteo вернул неполный почасовой прогноз");
+  }
+
+  let nearest = null;
+  let nearestDistance = Infinity;
+  hourly.time.forEach((value, index) => {
+    const forecastAt = hourlyTimeToDate(value);
+    const temperature = hourly.temperature_2m?.[index];
+    const precipitationProbability = hourly.precipitation_probability?.[index];
+    const weatherCode = hourly.weather_code?.[index];
+    const windSpeed = hourly.wind_speed_10m?.[index];
+    if (!forecastAt
+      || !isFiniteNumber(temperature)
+      || !isFiniteNumber(precipitationProbability)
+      || !isFiniteNumber(weatherCode)
+      || !isFiniteNumber(windSpeed)) {
+      return;
+    }
+    const distance = Math.abs(forecastAt.getTime() - target.getTime());
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearest = {
+        forecastAt,
+        temperature,
+        precipitationProbability,
+        weatherCode,
+        windSpeed,
+      };
+    }
+  });
+
+  if (!nearest) {
+    throw new Error("Open-Meteo не вернул значения рядом со временем слота");
+  }
+  return nearest;
+}
+
+async function requestWeather(url, config, isForecast) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
   const fetcher = config.fetchImpl ?? globalThis.fetch;
@@ -112,34 +202,52 @@ export async function fetchCurrentWeather(options = {}) {
       throw new Error("Fetch API недоступен");
     }
 
-    const response = await fetcher(buildCurrentWeatherUrl(config), {
+    const response = await fetcher(url, {
       signal: controller.signal,
       headers: { Accept: "application/json" },
       credentials: "omit",
       referrerPolicy: "no-referrer",
     });
     if (!response.ok) {
+      if (isForecast && response.status === 400) {
+        throw new WeatherHorizonError();
+      }
       throw new Error(`Open-Meteo ответил со статусом ${response.status}`);
     }
-
-    return normalizeCurrentWeather(await response.json());
+    return await response.json();
   } finally {
     clearTimeout(timeout);
   }
 }
 
-function renderLoading(container) {
+export async function fetchCurrentWeather(options = {}) {
+  const config = { ...DEFAULT_OPTIONS, ...options };
+  const payload = await requestWeather(buildCurrentWeatherUrl(config), config, false);
+  return normalizeCurrentWeather(payload);
+}
+
+export async function fetchSlotWeather(options = {}) {
+  const config = { ...DEFAULT_OPTIONS, ...options };
+  const payload = await requestWeather(buildSlotWeatherUrl(config), config, true);
+  return selectNearestHourlyWeather(payload, config.startsAt);
+}
+
+function renderLoading(container, isForecast) {
   const wrapper = createElement("div", { className: "weather-loading" });
   wrapper.append(
     createElement("span", { className: "loading-indicator", attributes: { "aria-hidden": "true" } }),
-    createElement("h3", { text: "Загружаем текущую погоду" }),
-    createElement("p", { text: "Запрашиваем только прогноз для центра Санкт-Петербурга…" }),
+    createElement("h3", { text: isForecast ? "Загружаем прогноз ко времени встречи" : "Загружаем текущую погоду" }),
+    createElement("p", {
+      text: isForecast
+        ? "Запрашиваем почасовой прогноз только по демонстрационным координатам и дате слота…"
+        : "Запрашиваем только прогноз для центра Санкт-Петербурга…",
+    }),
   );
   clearElement(container);
   container.append(wrapper);
 }
 
-function renderError(container, error, timeoutMs) {
+function renderError(container, error, timeoutMs, isForecast) {
   const isTimeout = error?.name === "AbortError" || error?.name === "TimeoutError";
   const seconds = Math.max(1, Math.round(timeoutMs / 1000));
   const wrapper = createElement("div", { className: "weather-error" });
@@ -159,12 +267,28 @@ function renderError(container, error, timeoutMs) {
     retryButton,
     createElement("p", {
       className: "weather-error-note",
-      text: "Ошибка погоды не влияет на компас, ссылки и другие разделы страницы.",
+      text: isForecast
+        ? "Погода не блокирует выбор слота и создание записи."
+        : "Ошибка погоды не влияет на компас, ссылки и другие разделы страницы.",
     }),
   );
   clearElement(container);
   container.append(wrapper);
   return retryButton;
+}
+
+function renderHorizonInfo(container, startsAt) {
+  const wrapper = createElement("div", { className: "weather-info" });
+  wrapper.append(
+    createElement("p", { className: "eyebrow", text: "Дата вне прогнозного горизонта" }),
+    createElement("h3", { text: "Прогноз на эту дату пока недоступен" }),
+    createElement("p", {
+      text: `Open-Meteo не предоставляет почасовой прогноз на ${formatDateTime(startsAt)}. Это информационное состояние, а не ошибка записи.`,
+    }),
+    createElement("p", { text: "Выбор слота и оформление доступны без прогноза погоды." }),
+  );
+  clearElement(container);
+  container.append(wrapper);
 }
 
 function createWeatherFact(label, value) {
@@ -191,7 +315,7 @@ function createSourceLink() {
   }, [hiddenText]);
 }
 
-function renderResult(container, weather, locationLabel) {
+function renderResult(container, weather, locationLabel, isForecast) {
   const heading = createElement("div", { className: "weather-heading" });
   heading.append(
     createElement("p", { className: "weather-location", text: locationLabel }),
@@ -218,16 +342,21 @@ function renderResult(container, weather, locationLabel) {
     createWeatherFact("Ветер", `${numberFormatter.format(weather.windSpeed)} м/с`),
   );
 
+  const weatherTime = isForecast ? weather.forecastAt : weather.observedAt;
   const time = createElement("time", {
-    text: `Данные на ${formatDateTime(weather.observedAt)}, московское время`,
-    attributes: { datetime: weather.observedAt.toISOString() },
+    text: `${isForecast ? "Прогноз на" : "Данные на"} ${formatDateTime(weatherTime)}, московское время`,
+    attributes: { datetime: weatherTime.toISOString() },
   });
   const metadata = createElement("div", { className: "weather-metadata" });
   const source = createElement("p", { className: "weather-source" }, ["Источник: ", createSourceLink(), "."]);
   metadata.append(
     createElement("p", {}, [time]),
     source,
-    createElement("p", { text: "Запрос содержит только координаты города и параметры прогноза; ваши данные не отправляются." }),
+    createElement("p", {
+      text: isForecast
+        ? "Запрос содержит только демонстрационные координаты и дату слота; поля формы не отправляются."
+        : "Запрос содержит только координаты города и параметры прогноза; ваши данные не отправляются.",
+    }),
   );
 
   clearElement(container);
@@ -241,37 +370,48 @@ export function renderWeatherWidget(container, options = {}) {
 
   const existingWidget = mountedWidgets.get(container);
   if (existingWidget) {
-    existingWidget.refresh();
+    existingWidget.refresh(options);
     return existingWidget;
   }
 
-  const config = { ...DEFAULT_OPTIONS, ...options };
+  let config = { ...DEFAULT_OPTIONS, ...options };
   let requestNumber = 0;
 
   const load = async (isRetry = false) => {
     const currentRequest = ++requestNumber;
+    const requestConfig = { ...config };
+    const isForecast = requestConfig.startsAt !== undefined && requestConfig.startsAt !== null;
     let focusTarget = null;
     if (isRetry) {
       container.focus({ preventScroll: true });
     }
     container.setAttribute("aria-busy", "true");
-    renderLoading(container);
+    renderLoading(container, isForecast);
 
     try {
-      const weather = await fetchCurrentWeather(config);
+      const weather = isForecast
+        ? await fetchSlotWeather(requestConfig)
+        : await fetchCurrentWeather(requestConfig);
       if (currentRequest !== requestNumber) {
         return null;
       }
-      renderResult(container, weather, config.locationLabel);
+      renderResult(container, weather, requestConfig.locationLabel, isForecast);
       if (isRetry) {
         focusTarget = container;
       }
       return weather;
     } catch (error) {
       if (currentRequest === requestNumber) {
-        const retryButton = renderError(container, error, config.timeoutMs);
-        if (isRetry) {
-          focusTarget = retryButton;
+        if (error instanceof WeatherHorizonError) {
+          renderHorizonInfo(container, requestConfig.startsAt);
+          if (isRetry) {
+            focusTarget = container;
+          }
+        } else {
+          const retryButton = renderError(container, error, requestConfig.timeoutMs, isForecast);
+          if (isRetry) {
+            focusTarget = retryButton;
+          }
         }
       }
       return null;
@@ -283,7 +423,16 @@ export function renderWeatherWidget(container, options = {}) {
     }
   };
 
-  const widget = { refresh: () => load(false) };
+  const widget = {
+    refresh(nextOptions = {}) {
+      config = { ...config, ...nextOptions };
+      return load(false);
+    },
+    cancel() {
+      requestNumber += 1;
+      container.setAttribute("aria-busy", "false");
+    },
+  };
   mountedWidgets.set(container, widget);
   container.classList.add("weather-widget");
   container.setAttribute("tabindex", "-1");
