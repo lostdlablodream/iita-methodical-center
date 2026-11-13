@@ -14,7 +14,7 @@
 - Open-Meteo: current и hourly прогноз, loading/result/error/retry.
 - SUTD-inspired navy/cyan палитра и проверенные WCAG-контрасты.
 - Публичная static-версия на GitHub Pages из `main` / `docs` по HTTPS и отдельный изолированный Docker deploy.
-- Финальные README/ARCHITECTURE с фактическими PR, быстрым запуском, DTO, REST и ограничениями; отдельный mobile header fix. Новому release PR номер не присваивается до его фактического создания координатором.
+- Финальные README/ARCHITECTURE с фактическими PR, быстрым запуском, DTO, REST и ограничениями; отдельный mobile header fix.
 
 ### Проверено
 

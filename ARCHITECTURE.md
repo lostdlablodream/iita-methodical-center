@@ -202,7 +202,7 @@ Frontend использует относительный `./api/v1`; production 
 
 ## 10. Analytics, CSV и ICS
 
-Server analytics выполняет чтение в отдельной `BEGIN`-транзакции, чтобы каталог и агрегаты соответствовали одному read snapshot. По всем 20 институтам и 6 темам заранее создаются нулевые значения; `totalActive` считает только active записи, optional topic filter применяется к строкам и тегам. В ответе нет `displayName`, raw `need`, booking IDs, owner tokens или idempotency payloads.
+Server analytics выполняет все свои чтения в отдельной `BEGIN`-транзакции, поэтому справочники институтов/тем и агрегаты внутри analytics-ответа соответствуют одному read snapshot. Полный каталог на главной загружается отдельным вызовом `getCatalog()`. По всем 20 институтам и 6 темам заранее создаются нулевые значения; `totalActive` считает только active записи, optional topic filter применяется к строкам и тегам. В ответе нет `displayName`, raw `need`, booking IDs, owner tokens или idempotency payloads.
 
 Local analytics использует тот же seed и только активные записи текущего local state. Главная не объединяет local/server агрегаты, а scope явно подписан.
 
@@ -280,6 +280,6 @@ Pages обслуживает только `main` / `docs` по HTTPS:
 
 ## 17. Release status
 
-Функциональность PR #1–#7 слита в `main`, Pages опубликован, отдельный Docker deploy проверен. Финальная ветка документации содержит отдельный mobile header CSS-fix и актуальные README/ARCHITECTURE/CHANGELOG; новый PR ещё не создаётся и не считается merged.
+Функциональность PR #1–#7 слита в `main`, Pages опубликован, отдельный Docker deploy проверен. Финальные README, ARCHITECTURE и CHANGELOG актуализированы; mobile header CSS-fix ограничен media query до 25 rem.
 
 Детальные 122 задачи, подтверждённые результаты и семь `CANCELED` находятся в [`CHANGELOG.md`](CHANGELOG.md). Повторять отменённые пользователем проверки этот документ не предлагает.
