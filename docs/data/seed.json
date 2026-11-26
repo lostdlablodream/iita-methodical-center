@@ -1,8 +1,8 @@
 {
   "meta": {
     "schemaVersion": 1,
-    "seedVersion": "2026-11-13",
-    "referenceDate": "2026-11-13",
+    "seedVersion": "2026-11-26",
+    "referenceDate": "2026-11-26",
     "timeZone": "Europe/Moscow",
     "defaultInstituteId": "iita",
     "scope": "Учебный демонстрационный справочник для проверки интерфейса записи и последующей загрузки того же набора данных в SQLite; не официальный перечень подразделений, услуг или расписание.",
@@ -80,7 +80,13 @@
       "slots": [
         { "id": "lms-course-map-20261116-1000", "startsAt": "2026-11-16T07:00:00Z", "endsAt": "2026-11-16T08:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 },
         { "id": "lms-course-map-20261120-1500", "startsAt": "2026-11-20T12:00:00Z", "endsAt": "2026-11-20T13:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 },
-        { "id": "lms-course-map-20261125-1130", "startsAt": "2026-11-25T08:30:00Z", "endsAt": "2026-11-25T09:30:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 }
+        { "id": "lms-course-map-20261125-1130", "startsAt": "2026-11-25T08:30:00Z", "endsAt": "2026-11-25T09:30:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
+        { "id": "lms-course-map-20261201-0900", "startsAt": "2026-12-01T06:00:00Z", "endsAt": "2026-12-01T07:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 1 },
+        { "id": "lms-course-map-20261211-1330", "startsAt": "2026-12-11T10:30:00Z", "endsAt": "2026-12-11T11:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 3 },
+        { "id": "lms-course-map-20270112-1200", "startsAt": "2027-01-12T09:00:00Z", "endsAt": "2027-01-12T10:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
+        { "id": "lms-course-map-20270115-1600", "startsAt": "2027-01-15T13:00:00Z", "endsAt": "2027-01-15T14:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 4 },
+        { "id": "lms-course-map-20270201-1500", "startsAt": "2027-02-01T12:00:00Z", "endsAt": "2027-02-01T13:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
+        { "id": "lms-course-map-20270211-1030", "startsAt": "2027-02-11T07:30:00Z", "endsAt": "2027-02-11T08:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 }
       ]
     },
     {
@@ -96,7 +102,13 @@
       "tags": ["задания", "коммуникация"],
       "slots": [
         { "id": "lms-assignments-20261117-1200", "startsAt": "2026-11-17T09:00:00Z", "endsAt": "2026-11-17T10:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
-        { "id": "lms-assignments-20261123-1600", "startsAt": "2026-11-23T13:00:00Z", "endsAt": "2026-11-23T14:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 4 }
+        { "id": "lms-assignments-20261123-1600", "startsAt": "2026-11-23T13:00:00Z", "endsAt": "2026-11-23T14:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 4 },
+        { "id": "lms-assignments-20261202-1030", "startsAt": "2026-12-02T07:30:00Z", "endsAt": "2026-12-02T08:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
+        { "id": "lms-assignments-20261211-1500", "startsAt": "2026-12-11T12:00:00Z", "endsAt": "2026-12-11T13:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 4 },
+        { "id": "lms-assignments-20270113-1330", "startsAt": "2027-01-13T10:30:00Z", "endsAt": "2027-01-13T11:30:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
+        { "id": "lms-assignments-20270119-0900", "startsAt": "2027-01-19T06:00:00Z", "endsAt": "2027-01-19T07:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 },
+        { "id": "lms-assignments-20270202-1600", "startsAt": "2027-02-02T13:00:00Z", "endsAt": "2027-02-02T14:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 4 },
+        { "id": "lms-assignments-20270211-1200", "startsAt": "2027-02-11T09:00:00Z", "endsAt": "2027-02-11T10:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 }
       ]
     },
     {
@@ -113,7 +125,13 @@
       "slots": [
         { "id": "ai-lesson-20261118-1000", "startsAt": "2026-11-18T07:00:00Z", "endsAt": "2026-11-18T08:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 1 },
         { "id": "ai-lesson-20261124-1300", "startsAt": "2026-11-24T10:00:00Z", "endsAt": "2026-11-24T11:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
-        { "id": "ai-lesson-20261127-1500", "startsAt": "2026-11-27T12:00:00Z", "endsAt": "2026-11-27T13:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 }
+        { "id": "ai-lesson-20261127-1500", "startsAt": "2026-11-27T12:00:00Z", "endsAt": "2026-11-27T13:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
+        { "id": "ai-lesson-20261203-1200", "startsAt": "2026-12-03T09:00:00Z", "endsAt": "2026-12-03T10:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
+        { "id": "ai-lesson-20261215-1600", "startsAt": "2026-12-15T13:00:00Z", "endsAt": "2026-12-15T14:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 },
+        { "id": "ai-lesson-20270114-1500", "startsAt": "2027-01-14T12:00:00Z", "endsAt": "2027-01-14T13:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 4 },
+        { "id": "ai-lesson-20270119-1030", "startsAt": "2027-01-19T07:30:00Z", "endsAt": "2027-01-19T08:30:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 },
+        { "id": "ai-lesson-20270203-0900", "startsAt": "2027-02-03T06:00:00Z", "endsAt": "2027-02-03T07:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 1 },
+        { "id": "ai-lesson-20270215-1330", "startsAt": "2027-02-15T10:30:00Z", "endsAt": "2027-02-15T11:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 3 }
       ]
     },
     {
@@ -129,7 +147,13 @@
       "tags": ["академическая добросовестность", "критическая проверка"],
       "slots": [
         { "id": "ai-integrity-20261119-1100", "startsAt": "2026-11-19T08:00:00Z", "endsAt": "2026-11-19T09:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 },
-        { "id": "ai-integrity-20261126-1400", "startsAt": "2026-11-26T11:00:00Z", "endsAt": "2026-11-26T12:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 }
+        { "id": "ai-integrity-20261126-1400", "startsAt": "2026-11-26T11:00:00Z", "endsAt": "2026-11-26T12:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 },
+        { "id": "ai-integrity-20261204-1330", "startsAt": "2026-12-04T10:30:00Z", "endsAt": "2026-12-04T11:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 4 },
+        { "id": "ai-integrity-20261215-0900", "startsAt": "2026-12-15T06:00:00Z", "endsAt": "2026-12-15T07:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 },
+        { "id": "ai-integrity-20270115-1600", "startsAt": "2027-01-15T13:00:00Z", "endsAt": "2027-01-15T14:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 1 },
+        { "id": "ai-integrity-20270121-1200", "startsAt": "2027-01-21T09:00:00Z", "endsAt": "2027-01-21T10:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 3 },
+        { "id": "ai-integrity-20270204-1030", "startsAt": "2027-02-04T07:30:00Z", "endsAt": "2027-02-04T08:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
+        { "id": "ai-integrity-20270215-1500", "startsAt": "2027-02-15T12:00:00Z", "endsAt": "2027-02-15T13:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 4 }
       ]
     },
     {
@@ -146,7 +170,13 @@
       "slots": [
         { "id": "rubrics-20261116-1300", "startsAt": "2026-11-16T10:00:00Z", "endsAt": "2026-11-16T11:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 },
         { "id": "rubrics-20261120-0900", "startsAt": "2026-11-20T06:00:00Z", "endsAt": "2026-11-20T07:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
-        { "id": "rubrics-20261130-1200", "startsAt": "2026-11-30T09:00:00Z", "endsAt": "2026-11-30T10:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 }
+        { "id": "rubrics-20261130-1200", "startsAt": "2026-11-30T09:00:00Z", "endsAt": "2026-11-30T10:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 },
+        { "id": "rubrics-20261207-1500", "startsAt": "2026-12-07T12:00:00Z", "endsAt": "2026-12-07T13:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 1 },
+        { "id": "rubrics-20261217-1030", "startsAt": "2026-12-17T07:30:00Z", "endsAt": "2026-12-17T08:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 3 },
+        { "id": "rubrics-20270118-0900", "startsAt": "2027-01-18T06:00:00Z", "endsAt": "2027-01-18T07:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
+        { "id": "rubrics-20270121-1330", "startsAt": "2027-01-21T10:30:00Z", "endsAt": "2027-01-21T11:30:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 4 },
+        { "id": "rubrics-20270205-1200", "startsAt": "2027-02-05T09:00:00Z", "endsAt": "2027-02-05T10:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
+        { "id": "rubrics-20270217-1600", "startsAt": "2027-02-17T13:00:00Z", "endsAt": "2027-02-17T14:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 }
       ]
     },
     {
@@ -162,7 +192,13 @@
       "tags": ["обратная связь", "промежуточный контроль"],
       "slots": [
         { "id": "feedback-20261117-0900", "startsAt": "2026-11-17T06:00:00Z", "endsAt": "2026-11-17T07:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 4 },
-        { "id": "feedback-20261124-1600", "startsAt": "2026-11-24T13:00:00Z", "endsAt": "2026-11-24T14:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 }
+        { "id": "feedback-20261124-1600", "startsAt": "2026-11-24T13:00:00Z", "endsAt": "2026-11-24T14:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
+        { "id": "feedback-20261208-1600", "startsAt": "2026-12-08T13:00:00Z", "endsAt": "2026-12-08T14:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
+        { "id": "feedback-20261217-1200", "startsAt": "2026-12-17T09:00:00Z", "endsAt": "2026-12-17T10:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 4 },
+        { "id": "feedback-20270119-1030", "startsAt": "2027-01-19T07:30:00Z", "endsAt": "2027-01-19T08:30:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
+        { "id": "feedback-20270125-1500", "startsAt": "2027-01-25T12:00:00Z", "endsAt": "2027-01-25T13:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 },
+        { "id": "feedback-20270208-1330", "startsAt": "2027-02-08T10:30:00Z", "endsAt": "2027-02-08T11:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 4 },
+        { "id": "feedback-20270217-0900", "startsAt": "2027-02-17T06:00:00Z", "endsAt": "2027-02-17T07:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 }
       ]
     },
     {
@@ -179,7 +215,13 @@
       "slots": [
         { "id": "project-brief-20261118-1400", "startsAt": "2026-11-18T11:00:00Z", "endsAt": "2026-11-18T12:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
         { "id": "project-brief-20261123-1000", "startsAt": "2026-11-23T07:00:00Z", "endsAt": "2026-11-23T08:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 1 },
-        { "id": "project-brief-20261127-1200", "startsAt": "2026-11-27T09:00:00Z", "endsAt": "2026-11-27T10:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 }
+        { "id": "project-brief-20261127-1200", "startsAt": "2026-11-27T09:00:00Z", "endsAt": "2026-11-27T10:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
+        { "id": "project-brief-20261209-0900", "startsAt": "2026-12-09T06:00:00Z", "endsAt": "2026-12-09T07:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
+        { "id": "project-brief-20261218-1330", "startsAt": "2026-12-18T10:30:00Z", "endsAt": "2026-12-18T11:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 },
+        { "id": "project-brief-20270120-1200", "startsAt": "2027-01-20T09:00:00Z", "endsAt": "2027-01-20T10:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 4 },
+        { "id": "project-brief-20270125-1600", "startsAt": "2027-01-25T13:00:00Z", "endsAt": "2027-01-25T14:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 },
+        { "id": "project-brief-20270209-1500", "startsAt": "2027-02-09T12:00:00Z", "endsAt": "2027-02-09T13:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 1 },
+        { "id": "project-brief-20270218-1030", "startsAt": "2027-02-18T07:30:00Z", "endsAt": "2027-02-18T08:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 3 }
       ]
     },
     {
@@ -195,7 +237,13 @@
       "tags": ["командные роли", "индивидуальный вклад"],
       "slots": [
         { "id": "project-team-20261119-1600", "startsAt": "2026-11-19T13:00:00Z", "endsAt": "2026-11-19T14:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
-        { "id": "project-team-20261125-1300", "startsAt": "2026-11-25T10:00:00Z", "endsAt": "2026-11-25T11:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 }
+        { "id": "project-team-20261125-1300", "startsAt": "2026-11-25T10:00:00Z", "endsAt": "2026-11-25T11:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 },
+        { "id": "project-team-20261210-1030", "startsAt": "2026-12-10T07:30:00Z", "endsAt": "2026-12-10T08:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 4 },
+        { "id": "project-team-20261221-1500", "startsAt": "2026-12-21T12:00:00Z", "endsAt": "2026-12-21T13:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 },
+        { "id": "project-team-20270121-1330", "startsAt": "2027-01-21T10:30:00Z", "endsAt": "2027-01-21T11:30:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 1 },
+        { "id": "project-team-20270127-0900", "startsAt": "2027-01-27T06:00:00Z", "endsAt": "2027-01-27T07:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 3 },
+        { "id": "project-team-20270210-1600", "startsAt": "2027-02-10T13:00:00Z", "endsAt": "2027-02-10T14:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
+        { "id": "project-team-20270219-1200", "startsAt": "2027-02-19T09:00:00Z", "endsAt": "2027-02-19T10:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 4 }
       ]
     },
     {
@@ -212,7 +260,13 @@
       "slots": [
         { "id": "documents-20261116-1600", "startsAt": "2026-11-16T13:00:00Z", "endsAt": "2026-11-16T14:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 },
         { "id": "documents-20261120-1200", "startsAt": "2026-11-20T09:00:00Z", "endsAt": "2026-11-20T10:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 },
-        { "id": "documents-20261126-1000", "startsAt": "2026-11-26T07:00:00Z", "endsAt": "2026-11-26T08:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 4 }
+        { "id": "documents-20261126-1000", "startsAt": "2026-11-26T07:00:00Z", "endsAt": "2026-11-26T08:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 4 },
+        { "id": "documents-20261211-1200", "startsAt": "2026-12-11T09:00:00Z", "endsAt": "2026-12-11T10:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 1 },
+        { "id": "documents-20261222-1600", "startsAt": "2026-12-22T13:00:00Z", "endsAt": "2026-12-22T14:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 3 },
+        { "id": "documents-20270122-1500", "startsAt": "2027-01-22T12:00:00Z", "endsAt": "2027-01-22T13:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
+        { "id": "documents-20270127-1030", "startsAt": "2027-01-27T07:30:00Z", "endsAt": "2027-01-27T08:30:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 4 },
+        { "id": "documents-20270211-0900", "startsAt": "2027-02-11T06:00:00Z", "endsAt": "2027-02-11T07:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
+        { "id": "documents-20270222-1330", "startsAt": "2027-02-22T10:30:00Z", "endsAt": "2027-02-22T11:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 }
       ]
     },
     {
@@ -228,7 +282,13 @@
       "tags": ["медиа", "цифровая доступность"],
       "slots": [
         { "id": "media-access-20261117-1400", "startsAt": "2026-11-17T11:00:00Z", "endsAt": "2026-11-17T12:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
-        { "id": "media-access-20261130-1500", "startsAt": "2026-11-30T12:00:00Z", "endsAt": "2026-11-30T13:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 }
+        { "id": "media-access-20261130-1500", "startsAt": "2026-11-30T12:00:00Z", "endsAt": "2026-11-30T13:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
+        { "id": "media-access-20261214-1330", "startsAt": "2026-12-14T10:30:00Z", "endsAt": "2026-12-14T11:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
+        { "id": "media-access-20261223-0900", "startsAt": "2026-12-23T06:00:00Z", "endsAt": "2026-12-23T07:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 4 },
+        { "id": "media-access-20270125-1600", "startsAt": "2027-01-25T13:00:00Z", "endsAt": "2027-01-25T14:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
+        { "id": "media-access-20270128-1200", "startsAt": "2027-01-28T09:00:00Z", "endsAt": "2027-01-28T10:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 },
+        { "id": "media-access-20270212-1030", "startsAt": "2027-02-12T07:30:00Z", "endsAt": "2027-02-12T08:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 4 },
+        { "id": "media-access-20270223-1500", "startsAt": "2027-02-23T12:00:00Z", "endsAt": "2027-02-23T13:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 }
       ]
     },
     {
@@ -245,7 +305,13 @@
       "slots": [
         { "id": "article-plan-20261118-0900", "startsAt": "2026-11-18T06:00:00Z", "endsAt": "2026-11-18T07:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 1 },
         { "id": "article-plan-20261124-1200", "startsAt": "2026-11-24T09:00:00Z", "endsAt": "2026-11-24T10:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 },
-        { "id": "article-plan-20261127-1600", "startsAt": "2026-11-27T13:00:00Z", "endsAt": "2026-11-27T14:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 }
+        { "id": "article-plan-20261127-1600", "startsAt": "2026-11-27T13:00:00Z", "endsAt": "2026-11-27T14:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
+        { "id": "article-plan-20261215-1500", "startsAt": "2026-12-15T12:00:00Z", "endsAt": "2026-12-15T13:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
+        { "id": "article-plan-20261224-1030", "startsAt": "2026-12-24T07:30:00Z", "endsAt": "2026-12-24T08:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 1 },
+        { "id": "article-plan-20270126-0900", "startsAt": "2027-01-26T06:00:00Z", "endsAt": "2027-01-26T07:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 4 },
+        { "id": "article-plan-20270129-1330", "startsAt": "2027-01-29T10:30:00Z", "endsAt": "2027-01-29T11:30:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 },
+        { "id": "article-plan-20270215-1200", "startsAt": "2027-02-15T09:00:00Z", "endsAt": "2027-02-15T10:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 1 },
+        { "id": "article-plan-20270225-1600", "startsAt": "2027-02-25T13:00:00Z", "endsAt": "2027-02-25T14:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 3 }
       ]
     },
     {
@@ -262,7 +328,13 @@
       "slots": [
         { "id": "evidence-review-20261119-1200", "startsAt": "2026-11-19T09:00:00Z", "endsAt": "2026-11-19T10:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
         { "id": "evidence-review-20261125-1600", "startsAt": "2026-11-25T13:00:00Z", "endsAt": "2026-11-25T14:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 1 },
-        { "id": "evidence-review-20261130-1000", "startsAt": "2026-11-30T07:00:00Z", "endsAt": "2026-11-30T08:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 }
+        { "id": "evidence-review-20261130-1000", "startsAt": "2026-11-30T07:00:00Z", "endsAt": "2026-11-30T08:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 3 },
+        { "id": "evidence-review-20261216-1600", "startsAt": "2026-12-16T13:00:00Z", "endsAt": "2026-12-16T14:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 4 },
+        { "id": "evidence-review-20261225-1200", "startsAt": "2026-12-25T09:00:00Z", "endsAt": "2026-12-25T10:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 2 },
+        { "id": "evidence-review-20270115-1500", "startsAt": "2027-01-15T12:00:00Z", "endsAt": "2027-01-15T13:00:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 3 },
+        { "id": "evidence-review-20270127-1030", "startsAt": "2027-01-27T07:30:00Z", "endsAt": "2027-01-27T08:30:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 1 },
+        { "id": "evidence-review-20270216-1330", "startsAt": "2027-02-16T10:30:00Z", "endsAt": "2027-02-16T11:30:00Z", "mode": "offline", "location": "Демонстрационная аудитория ИИТА", "capacity": 2 },
+        { "id": "evidence-review-20270226-0900", "startsAt": "2027-02-26T06:00:00Z", "endsAt": "2027-02-26T07:00:00Z", "mode": "online", "location": "Онлайн; доступ к демонстрационной встрече после записи", "capacity": 4 }
       ]
     }
   ]
