@@ -12,7 +12,7 @@ export const MODE_LABEL = "Учебный демо";
 export const MODE_DESCRIPTION = "Демонстрационный статический режим: справочник и расписание не являются официальными.";
 export const WEATHER_PROVIDER = "Open-Meteo";
 export const WEATHER_TIMEOUT_MS = 8000;
-export const SLOT_REFERENCE_DATE = "2026-11-13";
+export const SLOT_REFERENCE_DATE = "2026-11-26";
 
 export const QUERY_PARAMS = Object.freeze({
   TOPIC: "topicId",
